@@ -1,0 +1,181 @@
+.dashboard-container {
+    padding: 40px;
+    background: #fcfdfe;
+}
+
+.dashboard-header-modern {
+    margin-bottom: 40px;
+}
+
+.user-name {
+    color: #1890ff;
+}
+
+.dashboard-subtitle {
+    font-size: 16px;
+    margin-top: 8px;
+    display: block;
+}
+
+/* 统计卡片 */
+.modern-stat-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+}
+
+.modern-stat-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+}
+
+.stat-content-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+/* 动态列表 */
+.modern-activity-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    height: 100%;
+}
+
+.activity-item-refined {
+    padding: 16px 20px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.activity-avatar-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.activity-avatar-icon.type-upload {
+    background: #e6f7ff;
+    color: #1890ff;
+}
+
+.activity-avatar-icon.type-match {
+    background: #f6ffed;
+    color: #52c41a;
+}
+
+.activity-avatar-icon.type-job {
+    background: #fff7e6;
+    color: #ffa940;
+}
+
+.modern-status-tag {
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 10px;
+}
+
+.modern-status-tag.status-upload {
+    background: #e6f7ff;
+    color: #1890ff;
+}
+
+.modern-status-tag.status-match {
+    background: #f6ffed;
+    color: #52c41a;
+}
+
+/* 磁贴操作 */
+.modern-quick-actions-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.quick-action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.action-item-box {
+    background: #f5f7fa;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-item-box:hover {
+    background: #e6f4ff;
+    transform: scale(1.02);
+}
+
+.action-item-box.primary {
+    background: #1890ff;
+    color: #fff;
+}
+
+.action-item-box.primary:hover {
+    background: #40a9ff;
+}
+
+.action-item-box.accent {
+    background: #722ed1;
+    color: #fff;
+}
+
+.action-item-box.accent:hover {
+    background: #9254de;
+}
+
+.action-item-box.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.action-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.action-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.pro-tips {
+    background: #f0f5ff;
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 4px solid #1890ff;
+}
+
+.tips-header {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #1890ff;
+}
+
+.pro-tips p {
+    margin: 0;
+    font-size: 13px;
+    color: #595959;
+}

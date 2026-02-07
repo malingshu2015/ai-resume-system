@@ -1,0 +1,36 @@
+.library-page {
+    padding: 32px 40px;
+    background: #f5f7fa;
+    min-height: calc(100vh - 64px);
+}
+
+.library-header {
+    margin-bottom: 24px;
+}
+
+.library-content-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.library-content-card .ant-tabs-nav {
+    margin-bottom: 24px;
+}
+
+.library-content-card .ant-tabs-tab {
+    font-size: 16px;
+    padding: 12px 16px;
+}
+
+/* 覆盖子组件的 padding，避免双重间距 */
+.library-page .resume-list-page,
+.library-page .job-list-page {
+    padding: 0 !important;
+}
+
+.library-page .header-banner,
+.library-page .page-header-section {
+    display: none;
+    /* 资料库模式下隐藏重复的页眉 */
+}

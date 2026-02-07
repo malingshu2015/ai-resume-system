@@ -1,0 +1,48 @@
+.job-search-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.search-header {
+    margin-bottom: 24px;
+}
+
+.search-header h2 {
+    margin-bottom: 4px !important;
+}
+
+.search-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.search-card .ant-form-inline .ant-form-item {
+    margin-bottom: 0;
+}
+
+.ant-statistic-title {
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.45);
+}
+
+.ant-statistic-content {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+    .job-search-container {
+        padding: 16px;
+    }
+
+    .search-card .ant-form-inline {
+        display: block;
+    }
+
+    .search-card .ant-form-item {
+        width: 100% !important;
+        margin-bottom: 12px;
+    }
+}

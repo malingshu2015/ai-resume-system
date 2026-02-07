@@ -1,0 +1,120 @@
+.model-settings-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.settings-header {
+    margin-bottom: 32px;
+}
+
+.settings-header h2 {
+    margin-bottom: 4px !important;
+}
+
+.settings-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.settings-card .ant-table {
+    font-size: 14px;
+}
+
+.settings-card .ant-table-thead>tr>th {
+    background: #fafafa;
+    font-weight: 600;
+    padding: 16px 12px;
+}
+
+.settings-card .ant-table-tbody>tr>td {
+    padding: 16px 12px;
+    vertical-align: middle;
+}
+
+/* 表格列宽优化 */
+.settings-card .ant-table-cell {
+    word-break: keep-all;
+    white-space: nowrap;
+}
+
+.settings-card .ant-table-cell code {
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #1890ff;
+}
+
+.add-config-btn {
+    border-radius: 8px;
+    height: 48px;
+    padding: 0 24px;
+}
+
+.guide-card {
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fff 0%, #f0f7ff 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 255, 0.05);
+}
+
+.guide-card .ant-card-body {
+    padding: 20px;
+}
+
+.guide-item {
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+}
+
+.guide-item:hover {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.guide-item code {
+    display: inline-block;
+    margin-top: 4px;
+    background: #f0f0f0;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #1890ff;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.ant-table-wrapper {
+    background: #fff;
+    border-radius: 8px;
+}
+
+/* 响应式布局优化 */
+@media (max-width: 1200px) {
+    .model-settings-container {
+        max-width: 100%;
+        padding: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .settings-header {
+        text-align: center;
+    }
+
+    .add-config-btn {
+        margin-top: 16px;
+        width: 100%;
+    }
+
+    .settings-card .ant-table {
+        font-size: 12px;
+    }
+
+    .settings-card .ant-table-cell {
+        padding: 12px 8px;
+    }
+}

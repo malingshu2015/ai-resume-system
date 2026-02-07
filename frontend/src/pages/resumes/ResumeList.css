@@ -1,0 +1,161 @@
+.resume-list-page {
+    padding: 32px;
+    background: #f5f7fa;
+    min-height: calc(100vh - 64px);
+}
+
+.header-banner {
+    background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%);
+    padding: 40px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+    margin-bottom: 8px;
+}
+
+.banner-stats .ant-statistic-title {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.main-list-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.upload-guide-card {
+    border-radius: 12px;
+}
+
+.file-icon-box {
+    width: 36px;
+    height: 36px;
+    background: #e6f7ff;
+    color: #1890ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 18px;
+}
+
+.status-tag {
+    border-radius: 12px;
+    padding: 0 12px;
+}
+
+.action-btn {
+    border-radius: 6px;
+}
+
+.resume-dragger {
+    background: #fafafa !important;
+    border-radius: 12px !important;
+}
+
+.upload-tips {
+    margin-top: 24px;
+}
+
+.tips-list {
+    padding-left: 16px;
+    margin-top: 12px;
+    color: #5c5c5c;
+}
+
+.tips-list li {
+    margin-bottom: 8px;
+}
+
+/* 预览弹窗样式 */
+.resume-preview-modal .ant-modal-content {
+    padding: 0;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.modal-header-accent {
+    height: 6px;
+    background: linear-gradient(90deg, #1890ff, #722ed1);
+}
+
+.preview-container {
+    padding: 32px 40px;
+}
+
+.preview-top {
+    margin-bottom: 24px;
+}
+
+.skill-section-preview {
+    margin-bottom: 24px;
+}
+
+.preview-skill-tag {
+    margin-bottom: 8px;
+    font-size: 13px;
+    padding: 4px 12px;
+}
+
+.experience-timeline {
+    border-left: 2px solid #f0f0f0;
+    padding-left: 24px;
+    position: relative;
+    margin-bottom: 32px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 28px;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -31px;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    background: #1890ff;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px #e6f7ff;
+}
+
+.list-item-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.job-role {
+    color: #1a1a1a;
+    font-weight: 500;
+    margin-bottom: 4px !important;
+}
+
+.job-desc {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.edu-item {
+    margin-bottom: 16px;
+}
+
+.edu-date {
+    color: #8c8c8c;
+    font-size: 12px;
+}
+
+.modal-footer {
+    text-align: center;
+    padding-top: 24px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.detail-loading-box {
+    padding: 100px 0;
+    text-align: center;
+}

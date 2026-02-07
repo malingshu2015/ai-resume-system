@@ -1,0 +1,146 @@
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-background {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    z-index: 0;
+}
+
+.auth-background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+}
+
+.auth-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 60px;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-card {
+    background: white;
+    padding: 48px;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 420px;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.auth-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.auth-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.auth-button {
+    height: 44px;
+    font-size: 16px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 24px;
+    color: var(--text-secondary);
+}
+
+.auth-link {
+    color: var(--primary-color);
+    margin-left: 8px;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-link:hover {
+    color: var(--primary-hover);
+}
+
+.auth-features {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    margin-left: 80px;
+}
+
+.feature-item {
+    text-align: center;
+    color: white;
+}
+
+.feature-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.feature-item h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: white;
+}
+
+.feature-item p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .auth-background {
+        width: 40%;
+    }
+
+    .auth-features {
+        margin-left: 40px;
+    }
+}
+
+@media (max-width: 768px) {
+    .auth-background {
+        display: none;
+    }
+
+    .auth-content {
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .auth-features {
+        display: none;
+    }
+
+    .auth-card {
+        max-width: 100%;
+    }
+}
