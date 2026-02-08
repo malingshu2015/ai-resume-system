@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Card, Table, Button, Modal, Form, Input, Switch, message,
-    Tag, Space, Typography, Tooltip, Alert, Row, Col
+    Card, Table, Button, Modal, Form, Input, message,
+    Tag, Space, Typography, Alert, Row, Col, Divider
 } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
-    CheckCircleOutlined, SettingOutlined, BulbOutlined,
-    KeyOutlined, LinkOutlined, SafetyCertificateOutlined
+    CloudServerOutlined, SwapOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import './ModelSettings.css';
@@ -40,7 +39,8 @@ const ModelSettings: React.FC = () => {
         setLoading(true);
         try {
             const response = await axios.get(`${baseUrl}/config/`);
-            setConfigs(response.data);
+            const data = Array.isArray(response.data) ? response.data : response.data?.data || []
+            setConfigs(data);
         } catch (error) {
             message.error('获取配置失败');
         } finally {
@@ -58,18 +58,19 @@ const ModelSettings: React.FC = () => {
         setEditingConfig(record);
         form.setFieldsValue({
             ...record,
-            api_key: '' // 编辑时不回填 API Key，安全性考虑
+            api_key: ''
         });
         setModalVisible(true);
     };
 
     const handleDelete = (id: string) => {
         Modal.confirm({
-            title: '确认删除该配置？',
-            content: '删除后无法恢复，且如果该配置正在使用中，系统将回退到默认设置。',
-            okText: '确认删除',
+            title: '确认删除？',
+            content: '删除后无法恢复，且如果您删除了正在使用的模型，系统将回退到默认设置。',
+            okText: '删除',
             okType: 'danger',
             cancelText: '取消',
+            centered: true,
             onOk: async () => {
                 try {
                     await axios.delete(`${baseUrl}/config/${id}`);
@@ -85,10 +86,10 @@ const ModelSettings: React.FC = () => {
     const handleActivate = async (id: string) => {
         try {
             await axios.post(`${baseUrl}/config/${id}/activate`);
-            message.success('已成功切换模型');
+            message.success('已应用新模型配置');
             fetchConfigs();
         } catch (error) {
-            message.error('切换失败');
+            message.error('应用失败');
         }
     };
 
@@ -96,15 +97,13 @@ const ModelSettings: React.FC = () => {
         try {
             const values = await form.validateFields();
             if (editingConfig) {
-                // 如果 API Key 没填，则不更新 Key
                 const updateData = { ...values };
                 if (!updateData.api_key) delete updateData.api_key;
-
                 await axios.put(`${baseUrl}/config/${editingConfig.id}`, updateData);
                 message.success('更新成功');
             } else {
                 await axios.post(`${baseUrl}/config/`, values);
-                message.success('创建成功');
+                message.success('配置已添加');
             }
             setModalVisible(false);
             fetchConfigs();
@@ -115,132 +114,100 @@ const ModelSettings: React.FC = () => {
 
     const columns = [
         {
-            title: '状态',
-            dataIndex: 'is_active',
-            key: 'is_active',
-            width: 120,
-            align: 'center' as const,
-            render: (isActive: boolean, record: AIConfig) => (
-                isActive ?
-                    <Tag color="success" icon={<CheckCircleOutlined />}>正在使用</Tag> :
-                    <Button size="small" type="primary" ghost onClick={() => handleActivate(record.id)}>启用</Button>
+            title: '模型服务',
+            key: 'model_info',
+            render: (_: any, record: AIConfig) => (
+                <Space size={12}>
+                    <div className="apple-icon-circle purple">
+                        <CloudServerOutlined />
+                    </div>
+                    <div>
+                        <Text strong style={{ fontSize: 15, display: 'block' }}>{record.provider}</Text>
+                        <Text type="secondary" style={{ fontSize: 13 }}>{record.model_name}</Text>
+                    </div>
+                </Space>
             )
         },
         {
-            title: '供应商',
-            dataIndex: 'provider',
-            key: 'provider',
-            width: 140,
-            render: (text: string) => <Text strong style={{ fontSize: 14 }}>{text}</Text>
+            title: '状态',
+            dataIndex: 'is_active',
+            key: 'is_active',
+            render: (isActive: boolean, record: AIConfig) => (
+                isActive ?
+                    <Tag color="success" style={{ borderRadius: 12 }}>活动中</Tag> :
+                    <Button type="text" size="small" onClick={() => handleActivate(record.id)}>启用</Button>
+            )
         },
         {
-            title: '模型名称',
-            dataIndex: 'model_name',
-            key: 'model_name',
-            width: 280,
-            render: (text: string) => <Tag color="blue" style={{ fontSize: 13 }}>{text}</Tag>
-        },
-        {
-            title: 'API Key',
-            dataIndex: 'api_key',
-            key: 'api_key',
-            width: 180,
-            render: (text: string) => <code style={{ fontSize: 12 }}>{text}</code>
-        },
-        {
-            title: 'API 代理地址',
+            title: 'API 代理',
             dataIndex: 'api_base',
             key: 'api_base',
-            ellipsis: true,
-            render: (text: string) => text ? <code style={{ fontSize: 12 }}>{text}</code> : <Text type="secondary">默认</Text>
+            render: (text: string) => <Text type="secondary" style={{ fontSize: 13 }}>{text || '系统默认'}</Text>
         },
         {
-            title: '操作',
+            title: '',
             key: 'action',
-            width: 120,
-            align: 'center' as const,
+            align: 'right' as const,
             render: (_: any, record: AIConfig) => (
-                <Space size="small">
-                    <Tooltip title="编辑">
-                        <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-                    </Tooltip>
-                    <Tooltip title="删除">
-                        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
-                    </Tooltip>
+                <Space>
+                    <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+                    <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
                 </Space>
             )
         }
     ];
 
     return (
-        <div className="model-settings-container">
-            <div className="settings-header">
-                <Row align="middle" justify="space-between">
-                    <Col>
-                        <Title level={2}><SettingOutlined /> AI 模型设置</Title>
-                        <Text type="secondary">自主选择不同的 AI 大模型供应商，平衡成本与性能</Text>
-                    </Col>
-                    <Col>
-                        <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            size="large"
-                            onClick={handleAdd}
-                            className="add-config-btn"
-                        >
-                            添加新模型配置
-                        </Button>
-                    </Col>
-                </Row>
+        <div className="settings-container">
+            <div className="page-header">
+                <div className="header-left">
+                    <Title level={1}>系统设置</Title>
+                    <Text type="secondary" style={{ fontSize: 17 }}>
+                        您可以自主配置大语言模型 (LLM) 供应商，以获得最佳的解析质量与处理速度。
+                    </Text>
+                </div>
+                <div className="header-right">
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        size="large"
+                        onClick={handleAdd}
+                        style={{ height: 48, borderRadius: 24, padding: '0 24px' }}
+                    >
+                        添加模型
+                    </Button>
+                </div>
             </div>
 
-            <Row gutter={24} style={{ marginTop: 24 }}>
-                <Col xs={24} lg={17}>
-                    <Card className="settings-card">
+            <Row gutter={[32, 32]}>
+                <Col xs={24} lg={16}>
+                    <Card className="apple-card shadow-soft" title="模型配置列表">
                         <Table
                             columns={columns}
                             dataSource={configs}
                             rowKey="id"
                             loading={loading}
                             pagination={false}
-                            scroll={{ x: 1000 }}
+                            className="apple-table"
                         />
-                        {configs.every(c => !c.is_active) && (
-                            <Alert
-                                message="当前正在使用环境变量中定义的默认配置"
-                                type="info"
-                                showIcon
-                                style={{ marginTop: 16 }}
-                            />
-                        )}
                     </Card>
                 </Col>
-                <Col xs={24} lg={7}>
-                    <Card title={<><BulbOutlined /> 配置指南</>} className="guide-card">
-                        <Space direction="vertical" size="middle">
-                            <div className="guide-item">
-                                <Text strong><LinkOutlined /> DeepSeek</Text>
+                <Col xs={24} lg={8}>
+                    <Card title="配置建议" className="apple-card shadow-soft bg-faint">
+                        <Space direction="vertical" size={24}>
+                            <div className="guide-box">
+                                <Title level={5}><SwapOutlined /> 推荐模型</Title>
                                 <Paragraph type="secondary">
-                                    极致性价比。Base URL: <code>https://api.deepseek.com</code>
+                                    如果你追求解析速度，推荐使用 <strong>DeepSeek-V3</strong>；如果您追求匹配深度与文案质量，<strong>Claude 3.5 Sonnet</strong> 是最佳选择。
                                 </Paragraph>
                             </div>
-                            <div className="guide-item">
-                                <Text strong><SafetyCertificateOutlined /> Claude 3.5 Sonnet</Text>
-                                <Paragraph type="secondary">
-                                    代码与逻辑王者，推荐用于深度简历分析与建议。
-                                </Paragraph>
-                            </div>
-                            <div className="guide-item">
-                                <Text strong><KeyOutlined /> OpenAI gpt-4o</Text>
-                                <Paragraph type="secondary">
-                                    全能型选手，具备最强识图能力，支持截图分析 JD。
-                                </Paragraph>
-                            </div>
+                            <Divider style={{ margin: 0 }} />
                             <Alert
-                                type="warning"
-                                message="数据安全"
-                                description="您的 API Key 将加密存储在本地数据库中，仅用于调用 AI 接口。"
+                                message="全数据隐私保护"
+                                description="您的 API Key 仅在本地加密缓存，不会被上传或用于训练。系统直接与供应商 API 通信。"
+                                type="info"
                                 showIcon
+                                style={{ borderRadius: 12 }}
                             />
                         </Space>
                     </Card>
@@ -252,47 +219,34 @@ const ModelSettings: React.FC = () => {
                 open={modalVisible}
                 onOk={handleModalOk}
                 onCancel={() => setModalVisible(false)}
+                okText="保存"
+                cancelText="取消"
+                centered
                 destroyOnClose
             >
                 <Form
                     form={form}
                     layout="vertical"
                     initialValues={{ is_active: false }}
-                    style={{ marginTop: 16 }}
+                    style={{ marginTop: 20 }}
                 >
-                    <Form.Item
-                        name="provider"
-                        label="供应商名称 (如: DeepSeek, OpenAI)"
-                        rules={[{ required: true, message: '请输入供应商名称' }]}
-                    >
-                        <Input placeholder="例如: OpenAI" />
-                    </Form.Item>
-                    <Form.Item
-                        name="model_name"
-                        label="具体模型名称"
-                        rules={[{ required: true, message: '请输入模型名称' }]}
-                    >
-                        <Input placeholder="例如: gpt-4o 或 deepseek-chat" />
-                    </Form.Item>
-                    <Form.Item
-                        name="api_key"
-                        label={editingConfig ? "API Key (留空表示不修改)" : "API Key"}
-                        rules={[{ required: !editingConfig, message: '请输入 API Key' }]}
-                    >
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="provider" label="供应商名称" rules={[{ required: true }]}>
+                                <Input placeholder="如: OpenAI" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="model_name" label="模型名称" rules={[{ required: true }]}>
+                                <Input placeholder="如: gpt-4o" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Form.Item name="api_key" label="API Key" rules={[{ required: !editingConfig }]}>
                         <Input.Password placeholder="sk-..." />
                     </Form.Item>
-                    <Form.Item
-                        name="api_base"
-                        label="API 代理地址 (选填)"
-                    >
-                        <Input placeholder="默认为 https://api.openai.com/v1" />
-                    </Form.Item>
-                    <Form.Item
-                        name="is_active"
-                        label="立即启用"
-                        valuePropName="checked"
-                    >
-                        <Switch />
+                    <Form.Item name="api_base" label="API 代理地址 (可选)">
+                        <Input placeholder="https://api.example.com/v1" />
                     </Form.Item>
                 </Form>
             </Modal>

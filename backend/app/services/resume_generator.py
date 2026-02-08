@@ -16,27 +16,27 @@ from app.models.resume import Resume
 class ResumeGenerator:
     """简历生成器"""
     
-    # 支持的模板
+    # 支持的模板 - 精美设计
     TEMPLATES = {
         "modern": {
-            "name": "现代简约",
-            "description": "简洁现代的设计风格，适合互联网、科技行业",
+            "name": "🌐 科技蓝",
+            "description": "现代科技感十足，蓝色渐变主题，适合IT/互联网/技术岗位",
             "color_scheme": "blue"
         },
         "professional": {
-            "name": "专业商务",
-            "description": "传统专业的商务风格，适合金融、咨询行业",
-            "color_scheme": "navy"
+            "name": "🏆 商务金",
+            "description": "深邃商务蓝搭配金色点缀，高端大气，适合管理层/金融/商务岗位",
+            "color_scheme": "gold"
         },
         "creative": {
-            "name": "创意设计",
-            "description": "富有创意的设计风格，适合设计、广告行业",
+            "name": "🎨 创意紫",
+            "description": "梦幻紫色渐变，带有动态效果，适合设计师/创意/市场岗位",
             "color_scheme": "purple"
         },
         "minimal": {
-            "name": "极简主义",
-            "description": "极简风格，突出内容本身",
-            "color_scheme": "gray"
+            "name": "⚫ 极简黑",
+            "description": "黑白简约风格，高级留白设计，适合高端岗位/各类场合",
+            "color_scheme": "black"
         }
     }
     
@@ -82,12 +82,16 @@ class ResumeGenerator:
                 template=template
             )
             
+            # 生成纯文本版本供前端预览
+            text_content = self._format_resume_as_text(optimized_content)
+            
             return {
                 "original_resume_id": resume_id,
                 "target_job_id": job_id,
                 "template": template,
                 "template_info": self.TEMPLATES.get(template, self.TEMPLATES["modern"]),
                 "content": optimized_content,
+                "optimized_content": text_content,  # 新增：纯文本版本
                 "metadata": {
                     "generated_at": datetime.utcnow().isoformat(),
                     "optimization_applied": True,
@@ -130,6 +134,7 @@ class ResumeGenerator:
 3. **STAR法则应用**：所有工作经历和项目必须体现：情境(Situation)、任务(Task)、行动(Action)、结果(Result)。
 4. **量化价值**：必须包含具体的百分比、金额、时间、规模等数据（如“提升效率30%”，“管理10人团队”，“处理千万级并发”）。
 5. **亮点挖掘**：从平凡的工作中挖掘出不平凡的技术挑战或业务价值点。
+6. **⚠️ 项目完整性（重要）**：必须保留原简历中的所有项目经验，不能删减、合并或省略！原简历有几个项目，输出就必须有几个项目。每个项目都要深度优化，actions 数组至少3-5条，results 必须量化。
 
 请返回以下结构的 JSON 对象：
 {{
@@ -223,12 +228,28 @@ class ResumeGenerator:
         .achievement-list {{ padding-left: 15px; margin: 5px 0; }}
         .achievement-list li {{ font-size: 13px; color: #444; margin-bottom: 5px; }}
         
-        .skill-group {{ margin-bottom: 20px; }}
-        .skill-group h4 {{ margin: 0 0 8px 0; font-size: 13px; color: #888; }}
-        .skill-tags {{ font-size: 12px; line-height: 1.8; }}
-        .skill-tag {{ background: #f5f5f5; padding: 2px 8px; border-radius: 3px; border: 1px solid #e8e8e8; margin-right: 5px; display: inline-block; }}
+        .skill-group { margin-bottom: 12px; }
+        .skill-category { 
+            font-size: 11px; 
+            font-weight: 600; 
+            color: #666; 
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .skill-tags { font-size: 11px; line-height: 1.6; }
+        .skill-tag { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3px 8px; 
+            border-radius: 12px; 
+            margin-right: 4px; 
+            margin-bottom: 4px;
+            display: inline-block;
+            font-weight: 500;
+        }
         
-        .label-tag {{ background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-right: 5px; }}
+        .label-tag { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -257,7 +278,7 @@ class ResumeGenerator:
             </div>
             
             <div class="right-col">
-                <div class="section-title" style="margin-top: 0;">专业能力矩阵</div>
+                <div class="section-title" style="margin-top: 0;">核心技能</div>
                 {self._render_skills_html(skills_sections)}
                 
                 <div class="section-title">教育背景</div>
@@ -309,7 +330,7 @@ class ResumeGenerator:
             tags = "".join([f'<span class="skill-tag">{tag}</span>' for tag in s.get("skills", [])])
             html += f"""
             <div class="skill-group">
-                <h4>{s.get('category')}</h4>
+                <div class="skill-category">{s.get('category')}</div>
                 <div class="skill-tags">{tags}</div>
             </div>
             """
@@ -554,6 +575,127 @@ class ResumeGenerator:
             return html_path
             
         return output_path
+    
+    def _format_resume_as_text(self, content: Dict) -> str:
+        """
+        将结构化简历数据格式化为易读的纯文本格式
+        """
+        lines = []
+        
+        # 个人信息
+        personal = content.get("personal_info", {})
+        if personal:
+            lines.append("=" * 60)
+            lines.append(f"  {personal.get('name', '未知姓名')}")
+            if personal.get('title'):
+                lines.append(f"  {personal.get('title')}")
+            lines.append("=" * 60)
+            lines.append("")
+            
+            # 联系方式
+            contact = personal.get('contact', {})
+            contact_info = []
+            if contact.get('email'):
+                contact_info.append(f"邮箱: {contact['email']}")
+            if contact.get('phone'):
+                contact_info.append(f"电话: {contact['phone']}")
+            if contact.get('location'):
+                contact_info.append(f"地址: {contact['location']}")
+            if contact_info:
+                lines.append(" | ".join(contact_info))
+                lines.append("")
+            
+            # 职业概况
+            if personal.get('summary'):
+                lines.append("【职业概况】")
+                lines.append(personal['summary'])
+                lines.append("")
+        
+        # 工作经历
+        work_exp = content.get("work_experience", [])
+        if work_exp:
+            lines.append("【工作经历】")
+            lines.append("")
+            for exp in work_exp:
+                lines.append(f"▪ {exp.get('company', '未知公司')} | {exp.get('position', '未知职位')}")
+                lines.append(f"  {exp.get('duration', '')}")
+                if exp.get('description'):
+                    lines.append(f"  {exp['description']}")
+                
+                achievements = exp.get('achievements', [])
+                if achievements:
+                    for achievement in achievements:
+                        lines.append(f"  • {achievement}")
+                lines.append("")
+        
+        # 项目经验
+        projects = content.get("project_experience", [])
+        if projects:
+            lines.append("【项目经验】")
+            lines.append("")
+            for proj in projects:
+                lines.append(f"▪ {proj.get('name', '未知项目')} | {proj.get('role', '未知角色')}")
+                lines.append(f"  {proj.get('duration', '')}")
+                if proj.get('description'):
+                    lines.append(f"  {proj['description']}")
+                
+                actions = proj.get('actions', [])
+                if actions:
+                    for action in actions:
+                        lines.append(f"  • {action}")
+                
+                if proj.get('results'):
+                    lines.append(f"  成果: {proj['results']}")
+                lines.append("")
+        
+        # 技能
+        skills_sections = content.get("skills_sections", [])
+        if skills_sections:
+            lines.append("【专业技能】")
+            lines.append("")
+            for section in skills_sections:
+                category = section.get('category', '技能')
+                skills = section.get('skills', [])
+                if skills:
+                    lines.append(f"▪ {category}: {', '.join(skills)}")
+            lines.append("")
+        
+        # 教育背景
+        education = content.get("education", [])
+        if education:
+            lines.append("【教育背景】")
+            lines.append("")
+            for edu in education:
+                school = edu.get('school', '未知学校')
+                degree = edu.get('degree', '')
+                major = edu.get('major', '')
+                duration = edu.get('duration', '')
+                lines.append(f"▪ {school} | {degree} {major}")
+                if duration:
+                    lines.append(f"  {duration}")
+            lines.append("")
+        
+        # 证书
+        certifications = content.get("certifications", [])
+        if certifications:
+            lines.append("【资格证书】")
+            lines.append("")
+            for cert in certifications:
+                if isinstance(cert, str):
+                    lines.append(f"▪ {cert}")
+                elif isinstance(cert, dict):
+                    name = cert.get('name', '未知证书')
+                    issuer = cert.get('issuer', '')
+                    date = cert.get('date', '')
+                    cert_line = f"▪ {name}"
+                    if issuer:
+                        cert_line += f" ({issuer})"
+                    if date:
+                        cert_line += f" - {date}"
+                    lines.append(cert_line)
+            lines.append("")
+        
+        return "\n".join(lines)
 
 
 # 全局实例

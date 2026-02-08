@@ -1,161 +1,204 @@
-.resume-list-page {
-    padding: 32px;
-    background: #f5f7fa;
-    min-height: calc(100vh - 64px);
+.resume-list-container {
+    animation: fadeIn 0.6s ease-out;
 }
 
-.header-banner {
-    background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%);
-    padding: 40px;
-    border-radius: 16px;
+/* Page Header Patterns */
+.page-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-    margin-bottom: 8px;
+    align-items: flex-end;
+    margin-bottom: 40px;
 }
 
-.banner-stats .ant-statistic-title {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.main-list-card {
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.upload-guide-card {
-    border-radius: 12px;
-}
-
-.file-icon-box {
-    width: 36px;
-    height: 36px;
-    background: #e6f7ff;
-    color: #1890ff;
+.apple-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    font-size: 20px;
+}
+
+.apple-icon-circle.blue {
+    background: rgba(0, 122, 255, 0.1);
+    color: #007AFF;
+}
+
+/* Table Styles */
+.apple-table .ant-table {
+    background: transparent !important;
+}
+
+.apple-table .ant-table-thead>tr>th {
+    background: transparent !important;
+    border-bottom: 1px solid var(--apple-gray-200) !important;
+    color: var(--apple-text-secondary) !important;
+    font-size: 13px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.apple-table .ant-table-tbody>tr>td {
+    border-bottom: 1px solid var(--apple-gray-100) !important;
+    padding: 20px 16px !important;
+}
+
+.apple-table .ant-table-tbody>tr:hover>td {
+    background: var(--apple-gray-100) !important;
+}
+
+/* Action Buttons */
+.apple-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 18px;
+    transition: all 0.2s ease;
 }
 
-.status-tag {
-    border-radius: 12px;
-    padding: 0 12px;
+.apple-icon-btn:hover {
+    background: var(--apple-gray-200) !important;
 }
 
-.action-btn {
-    border-radius: 6px;
+.apple-icon-btn.danger:hover {
+    background: rgba(255, 59, 48, 0.1) !important;
+    color: #FF3B30 !important;
 }
 
-.resume-dragger {
-    background: #fafafa !important;
-    border-radius: 12px !important;
+/* Dragger */
+.apple-dragger {
+    background: var(--apple-gray-100) !important;
+    border: 2px dashed var(--apple-gray-300) !important;
+    border-radius: 18px !important;
+    transition: all 0.3s ease !important;
 }
 
-.upload-tips {
-    margin-top: 24px;
+.apple-dragger:hover {
+    border-color: var(--apple-blue) !important;
+    background: rgba(0, 122, 255, 0.02) !important;
 }
 
-.tips-list {
-    padding-left: 16px;
-    margin-top: 12px;
-    color: #5c5c5c;
+.dragger-icon {
+    font-size: 48px;
+    color: var(--apple-blue);
+    margin-bottom: 16px;
 }
 
-.tips-list li {
-    margin-bottom: 8px;
+.dragger-text {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 4px;
 }
 
-/* 预览弹窗样式 */
-.resume-preview-modal .ant-modal-content {
-    padding: 0;
-    overflow: hidden;
-    border-radius: 12px;
-}
-
-.modal-header-accent {
-    height: 6px;
-    background: linear-gradient(90deg, #1890ff, #722ed1);
-}
-
-.preview-container {
-    padding: 32px 40px;
-}
-
-.preview-top {
-    margin-bottom: 24px;
-}
-
-.skill-section-preview {
-    margin-bottom: 24px;
-}
-
-.preview-skill-tag {
-    margin-bottom: 8px;
+.dragger-hint {
+    color: var(--apple-text-secondary);
     font-size: 13px;
-    padding: 4px 12px;
 }
 
-.experience-timeline {
-    border-left: 2px solid #f0f0f0;
-    padding-left: 24px;
-    position: relative;
+/* Modal Overlay Style */
+.resume-detail-overlay {
+    padding: 24px;
+}
+
+.resume-detail-header {
     margin-bottom: 32px;
 }
 
-.timeline-item {
+.detail-section {
+    margin-bottom: 32px;
+}
+
+.skill-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.apple-tag {
+    background: var(--apple-gray-100) !important;
+    border: none !important;
+    color: var(--apple-text-primary) !important;
+    padding: 6px 14px !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+}
+
+/* Experience Timeline */
+.exp-item {
     position: relative;
-    margin-bottom: 28px;
+    padding-left: 24px;
+    margin-bottom: 24px;
 }
 
-.timeline-dot {
+.exp-dot {
     position: absolute;
-    left: -31px;
-    top: 6px;
-    width: 12px;
-    height: 12px;
-    background: #1890ff;
-    border: 2px solid #fff;
+    left: 0;
+    top: 8px;
+    width: 8px;
+    height: 8px;
+    background: var(--apple-blue);
     border-radius: 50%;
-    box-shadow: 0 0 0 2px #e6f7ff;
 }
 
-.list-item-header {
+.exp-header {
     display: flex;
     justify-content: space-between;
     margin-bottom: 4px;
 }
 
-.job-role {
-    color: #1a1a1a;
-    font-weight: 500;
-    margin-bottom: 4px !important;
+.modal-actions {
+    margin-top: 40px;
 }
 
-.job-desc {
-    color: #666;
-    font-size: 13px;
-    line-height: 1.6;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.edu-item {
-    margin-bottom: 16px;
+/* Tabs 样式定制 */
+.resume-tabs .ant-tabs-nav {
+    margin-bottom: 24px;
 }
 
-.edu-date {
-    color: #8c8c8c;
-    font-size: 12px;
+.resume-tabs .ant-tabs-tab {
+    font-size: 15px;
+    padding: 12px 16px;
+    transition: all 0.3s;
 }
 
-.modal-footer {
-    text-align: center;
-    padding-top: 24px;
-    border-top: 1px solid #f0f0f0;
+.resume-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+    font-weight: 600;
 }
 
-.detail-loading-box {
-    padding: 100px 0;
-    text-align: center;
+/* 针对岗位的 Tag 样式优化 */
+.ant-tag-cyan {
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.ant-tag-cyan:hover {
+    filter: brightness(0.95);
+    transform: scale(1.02);
+}
+
+.apple-icon-circle.green {
+    background: rgba(82, 196, 26, 0.1);
+    color: #52c41a;
+}
+
+.optimized-resume-actions {
+    margin-top: 24px;
 }

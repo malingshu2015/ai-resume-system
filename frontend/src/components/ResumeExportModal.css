@@ -1,0 +1,45 @@
+/* 简历导出模态框样式 */
+.resume-export-modal .ant-modal-body {
+    padding: 24px;
+}
+
+.resume-export-modal .ant-tabs-nav {
+    margin-bottom: 24px;
+}
+
+/* 导出格式卡片 */
+.export-format-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 16px;
+    text-align: center;
+    padding: 24px;
+    height: 100%;
+}
+
+.export-format-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+    border-color: var(--apple-blue) !important;
+}
+
+.export-format-card .ant-space {
+    align-items: center;
+}
+
+/* 简历预览容器 */
+.resume-preview-container {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

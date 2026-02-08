@@ -1,104 +1,118 @@
-import React, { useState } from 'react';
-import { Layout, Menu, Button, Avatar, Dropdown, Space } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography } from 'antd'
 import {
-    DashboardOutlined,
+    HomeOutlined,
+    FileTextOutlined,
+    AimOutlined,
     ThunderboltOutlined,
-    DatabaseOutlined,
-    UserOutlined,
-    LogoutOutlined,
-    MenuFoldOutlined,
-    MenuUnfoldOutlined,
     SettingOutlined,
-    SearchOutlined
-} from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
+    UserOutlined,
+    LogoutOutlined
+} from '@ant-design/icons'
+import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 
-const { Header, Sider, Content } = Layout;
+const { Sider, Content } = Layout
+const { Title, Text } = Typography
 
-const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [collapsed, setCollapsed] = useState(false);
-    const navigate = useNavigate();
-    const location = useLocation();
+const MainLayout: React.FC = () => {
+    const location = useLocation()
+    const navigate = useNavigate()
 
     const menuItems = [
-        {
-            key: '/dashboard',
-            icon: <DashboardOutlined />,
-            label: '概览仪表盘',
-        },
-        {
-            key: '/match',
-            icon: <ThunderboltOutlined />,
-            label: '智能匹配分析',
-        },
-        {
-            key: '/library',
-            icon: <DatabaseOutlined />,
-            label: '我的资料库',
-        },
-        {
-            key: '/jobs/create',
-            icon: <ThunderboltOutlined />,
-            label: '职位极速录入',
-        },
-        {
-            key: '/jobs/search',
-            icon: <SearchOutlined />,
-            label: '职位智能搜索',
-        },
-        {
-            key: '/settings/model',
-            icon: <SettingOutlined />,
-            label: 'AI 模型设置',
-        },
-    ];
+        { key: '/', icon: <HomeOutlined />, label: '概览' },
+        { key: '/resume', icon: <FileTextOutlined />, label: '简历库' },
+        { key: '/jobs', icon: <AimOutlined />, label: '职位库' },
+        { key: '/match', icon: <ThunderboltOutlined />, label: '智能匹配' },
+        { key: '/settings', icon: <SettingOutlined />, label: '设置' },
+    ]
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
-            <Sider trigger={null} collapsible collapsed={collapsed} theme="light" style={{ boxShadow: '2px 0 8px 0 rgba(29,33,41,.05)' }}>
-                <div style={{ height: 64, margin: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    <div style={{ width: 32, height: 32, background: '#1890ff', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none' }}>
-                        <ThunderboltOutlined style={{ color: '#fff', fontSize: 18 }} />
+            <Sider
+                width={260}
+                style={{
+                    background: '#F5F5F7',
+                    borderRight: '1px solid #E5E5EA',
+                    position: 'fixed',
+                    height: '100vh',
+                    left: 0,
+                    zIndex: 100
+                }}
+            >
+                <div style={{ padding: '32px 24px' }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        marginBottom: '40px',
+                        padding: '0 12px'
+                    }}>
+                        <div style={{
+                            width: '32px',
+                            height: '32px',
+                            background: '#007AFF',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            <ThunderboltOutlined style={{ color: 'white', fontSize: '18px' }} />
+                        </div>
+                        <span style={{
+                            fontSize: '20px',
+                            fontWeight: 700,
+                            color: '#1D1D1F',
+                            letterSpacing: '-0.5px'
+                        }}>AI Resume</span>
                     </div>
-                    {!collapsed && <span style={{ marginLeft: 12, fontWeight: 700, fontSize: 18, color: '#1a1a1a', whiteSpace: 'nowrap' }}>AI 智能简历</span>}
-                </div>
-                <Menu
-                    theme="light"
-                    mode="inline"
-                    selectedKeys={[location.pathname]}
-                    items={menuItems}
-                    onClick={({ key }) => navigate(key)}
-                    style={{ borderRight: 0 }}
-                />
-            </Sider>
-            <Layout>
-                <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', zIndex: 1 }}>
-                    <Button
-                        type="text"
-                        icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                        onClick={() => setCollapsed(!collapsed)}
-                        style={{ fontSize: '16px', width: 64, height: 64 }}
+
+                    <Menu
+                        mode="inline"
+                        selectedKeys={[location.pathname]}
+                        onClick={({ key }) => navigate(key)}
+                        items={menuItems}
+                        style={{ border: 'none', background: 'transparent' }}
                     />
-                    <Space size={24}>
+
+                    <div style={{ position: 'absolute', bottom: 32, left: 24, right: 24 }}>
                         <Dropdown menu={{
                             items: [
                                 { key: 'profile', icon: <UserOutlined />, label: '个人信息' },
-                                { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true, onClick: () => navigate('/login') }
+                                { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true }
                             ]
                         }}>
-                            <Space style={{ cursor: 'pointer' }}>
-                                <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
-                                <span style={{ fontWeight: 500 }}>张伟</span>
-                            </Space>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px',
+                                cursor: 'pointer',
+                                borderRadius: '12px',
+                                transition: 'background 0.3s'
+                            }} className="user-profile-nav">
+                                <Avatar icon={<UserOutlined />} />
+                                <div style={{ overflow: 'hidden' }}>
+                                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#1D1D1F' }}>Robin Xie</div>
+                                    <div style={{ fontSize: '12px', color: '#86868B' }}>高级用户</div>
+                                </div>
+                            </div>
                         </Dropdown>
-                    </Space>
-                </Header>
-                <Content style={{ minHeight: 280, background: '#f5f7fa', overflow: 'initial' }}>
-                    {children}
+                    </div>
+                </div>
+            </Sider>
+
+            <Layout style={{ marginLeft: 260, background: 'var(--apple-bg)' }}>
+                <Content style={{
+                    padding: '40px 60px',
+                    maxWidth: '1300px',
+                    margin: '0',
+                    width: '100%',
+                    minHeight: '100vh'
+                }}>
+                    <Outlet />
                 </Content>
             </Layout>
         </Layout>
-    );
-};
+    )
+}
 
-export default MainLayout;
+export default MainLayout

@@ -167,7 +167,56 @@ async def upload_resume(
 @router.get("/", response_model=List[dict])
 async def list_resumes(db: Session = Depends(get_db)):
     resumes = db.query(Resume).order_by(Resume.created_at.desc()).all()
-    return [{"id": r.id, "filename": r.filename, "status": r.status, "created_at": r.created_at.isoformat()} for r in resumes]
+    return [
+        {
+            "id": r.id, 
+            "filename": r.filename, 
+            "status": r.status, 
+            "created_at": r.created_at.isoformat(),
+            "is_optimized": getattr(r, 'is_optimized', False),
+            "target_job_title": getattr(r, 'target_job_title', None),
+            "target_job_company": getattr(r, 'target_job_company', None),
+            "optimization_notes": getattr(r, 'optimization_notes', None),
+            "parent_resume_id": getattr(r, 'parent_resume_id', None),
+            "avatar_url": getattr(r, 'avatar_url', None)
+        } 
+        for r in resumes
+    ]
+
+@router.post("/{resume_id}/avatar")
+async def upload_avatar(
+    resume_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """上传简历头像"""
+    resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="简历不存在")
+    
+    allowed_image_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    
+    if file_ext not in allowed_image_extensions:
+        raise HTTPException(status_code=400, detail="不支持的图片格式")
+    
+    # 存放在 uploads/avatars 子目录
+    avatar_dir = os.path.join(settings.UPLOAD_DIR, "avatars")
+    if not os.path.exists(avatar_dir):
+        os.makedirs(avatar_dir)
+        
+    new_filename = f"avatar_{resume_id}{file_ext}"
+    file_path = os.path.join(avatar_dir, new_filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # 构建可访问的 URL
+    avatar_url = f"/uploads/avatars/{new_filename}"
+    resume.avatar_url = avatar_url
+    db.commit()
+    
+    return {"avatar_url": avatar_url}
 
 @router.get("/{resume_id}")
 async def get_resume(resume_id: str, db: Session = Depends(get_db)):
@@ -179,7 +228,42 @@ async def get_resume(resume_id: str, db: Session = Depends(get_db)):
         "filename": resume.filename,
         "status": resume.status,
         "parsed_data": resume.parsed_data,
-        "created_at": resume.created_at.isoformat()
+        "created_at": resume.created_at.isoformat(),
+        # AI 优化版简历的相关字段
+        "is_optimized": getattr(resume, 'is_optimized', False),
+        "target_job_title": getattr(resume, 'target_job_title', None),
+        "target_job_company": getattr(resume, 'target_job_company', None),
+        "optimization_notes": getattr(resume, 'optimization_notes', None),
+        "parent_resume_id": getattr(resume, 'parent_resume_id', None),
+        "avatar_url": getattr(resume, 'avatar_url', None)
+    }
+
+@router.put("/{resume_id}")
+async def update_resume(resume_id: str, request: dict, db: Session = Depends(get_db)):
+    """更新简历内容（支持用户编辑）"""
+    resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="简历不存在")
+    
+    # 更新 parsed_data
+    if "parsed_data" in request:
+        resume.parsed_data = request["parsed_data"]
+    
+    # 更新文件名
+    if "filename" in request:
+        resume.filename = request["filename"]
+    
+    # 更新头像链接
+    if "avatar_url" in request:
+        resume.avatar_url = request["avatar_url"]
+    
+    db.commit()
+    db.refresh(resume)
+    
+    return {
+        "message": "简历已更新",
+        "id": resume.id,
+        "filename": resume.filename
     }
 
 @router.delete("/{resume_id}")

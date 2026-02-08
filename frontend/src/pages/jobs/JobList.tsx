@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react'
 import {
     Button, Card, Space, Tag, Modal, Typography, message,
-    Descriptions, Divider, Badge, Empty, Row, Col, Tooltip, Spin
+    Divider, Badge, Empty, Row, Col, Tooltip, Spin, Input, Tabs
 } from 'antd'
 import {
     PlusOutlined, EyeOutlined, DeleteOutlined, SyncOutlined,
     AimOutlined, EnvironmentOutlined, DollarOutlined, CalendarOutlined,
-    SearchOutlined, ThunderboltOutlined, FileTextOutlined
+    SearchOutlined, ThunderboltOutlined, FileTextOutlined,
+    EditOutlined, GlobalOutlined, ScissorOutlined, RocketOutlined,
+    ArrowRightOutlined
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { Input } from 'antd'
 import axios from 'axios'
 import './JobList.css'
 
 const { Title, Text, Paragraph } = Typography
+const { TextArea } = Input
 
 interface Job {
     id: string
@@ -25,12 +27,13 @@ interface Job {
     parsed_data?: any
 }
 
-const JobList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) => {
+const JobList: React.FC = () => {
     const [jobs, setJobs] = useState<Job[]>([])
     const [loading, setLoading] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [currentJob, setCurrentJob] = useState<Job | null>(null)
     const [searchText, setSearchText] = useState('')
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
     const navigate = useNavigate()
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
@@ -39,7 +42,8 @@ const JobList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) => {
         setLoading(true)
         try {
             const response = await axios.get(`${baseUrl}/jobs/`)
-            setJobs(response.data)
+            const data = Array.isArray(response.data) ? response.data : response.data?.data || []
+            setJobs(data)
         } catch {
             message.error('获取职位列表失败')
         } finally {
@@ -63,11 +67,12 @@ const JobList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) => {
 
     const handleDelete = async (id: string) => {
         Modal.confirm({
-            title: '确认删除',
-            content: '删除后将无法找回该职位的相关解析数据，是否继续？',
-            okText: '确认删除',
+            title: '确认删除此职位？',
+            content: '删除后相关的分析数据将不可找回。',
+            okText: '删除',
             okType: 'danger',
             cancelText: '取消',
+            centered: true,
             onOk: async () => {
                 try {
                     await axios.delete(`${baseUrl}/jobs/${id}`)
@@ -85,154 +90,181 @@ const JobList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) => {
         job.company.toLowerCase().includes(searchText.toLowerCase())
     )
 
-    const renderJobCard = (job: Job) => (
-        <Col xs={24} sm={12} xl={8} key={job.id}>
-            <Card
-                className="job-item-card"
-                hoverable
-                actions={[
-                    <Tooltip title="查看解析详情"><EyeOutlined key="view" onClick={() => handleViewDetail(job.id)} /></Tooltip>,
-                    <Tooltip title="与简历匹配"><ThunderboltOutlined key="match" style={{ color: '#1890ff' }} onClick={() => message.info('请前往匹配分析页面选择此职位')} /></Tooltip>,
-                    <Tooltip title="删除职位"><DeleteOutlined key="delete" style={{ color: '#ff4d4f' }} onClick={() => handleDelete(job.id)} /></Tooltip>
-                ]}
-            >
-                <div className="job-card-header">
-                    <div className="company-logo-type">
-                        {job.company.substring(0, 1)}
-                    </div>
-                    <div className="job-basic">
-                        <Title level={5} className="job-title-text" ellipsis>{job.title}</Title>
-                        <Text type="secondary" className="company-text">{job.company}</Text>
-                    </div>
-                    <Badge status={job.status === 'parsed' ? 'success' : 'processing'} text={job.status === 'parsed' ? '已收录' : '处理中'} />
-                </div>
-
-                <div className="job-card-content">
-                    {job.parsed_data ? (
-                        <>
-                            <div className="job-tags">
-                                {job.parsed_data.location && <Tag icon={<EnvironmentOutlined />}>{job.parsed_data.location}</Tag>}
-                                {job.parsed_data.salary_range && <Tag color="gold" icon={<DollarOutlined />}>{job.parsed_data.salary_range}</Tag>}
-                            </div>
-                            <div className="skill-preview">
-                                {job.parsed_data.requirements?.skills?.slice(0, 3).map((s: string, i: number) => (
-                                    <Tag key={i} color="blue" bordered={false}>{s}</Tag>
-                                ))}
-                                {job.parsed_data.requirements?.skills?.length > 3 && <Text type="secondary">...</Text>}
-                            </div>
-                        </>
-                    ) : (
-                        <div className="parsing-placeholder">
-                            <SyncOutlined spin /> AI 正在解析职责与技能...
-                        </div>
-                    )}
-                </div>
-            </Card>
-        </Col>
-    )
-
-    const renderParsedDetail = () => {
-        if (!currentJob?.parsed_data) return <Empty description="AI 还未完成对此职位描述的深度学习" />
-        const data = currentJob.parsed_data
-        return (
-            <div className="job-detail-modal">
-                <Descriptions column={2} bordered size="middle" className="classic-desc">
-                    <Descriptions.Item label="职位名称" span={2}><Text strong style={{ fontSize: 16 }}>{data.job_title || currentJob.title}</Text></Descriptions.Item>
-                    <Descriptions.Item label={<Space><EnvironmentOutlined /> 工作地点</Space>}>{data.location || '未标注'}</Descriptions.Item>
-                    <Descriptions.Item label={<Space><DollarOutlined /> 薪资范围</Space>}>{data.salary_range || '面议'}</Descriptions.Item>
-                    <Descriptions.Item label={<Space><CalendarOutlined /> 经验要求</Space>}>{data.requirements?.experience_years || '不限'}</Descriptions.Item>
-                    <Descriptions.Item label={<Space><FileTextOutlined /> 学历要求</Space>}>{data.requirements?.education || '不限'}</Descriptions.Item>
-                </Descriptions>
-
-                <Divider>关键技能要求 (Must Have)</Divider>
-                <div className="skill-grid">
-                    {data.requirements?.skills?.map((skill: string, i: number) => (
-                        <Tag key={i} color="processing" className="large-skill-tag">{skill}</Tag>
-                    ))}
-                </div>
-
-                <Divider>核心岗位职责</Divider>
-                <ul className="responsibility-list">
-                    {data.responsibilities?.map((r: string, i: number) => (
-                        <li key={i}>{r}</li>
-                    ))}
-                </ul>
-
-                {data.benefits && data.benefits.length > 0 && (
-                    <>
-                        <Divider>福利待遇</Divider>
-                        <Space wrap>
-                            {data.benefits.map((b: string, i: number) => (
-                                <Tag key={i} color="orange">{b}</Tag>
-                            ))}
-                        </Space>
-                    </>
-                )}
-
-                <Divider>原始职位描述</Divider>
-                <div className="raw-description">
-                    <Paragraph>{currentJob.description}</Paragraph>
-                </div>
-            </div>
-        )
-    }
-
     return (
-        <div className="job-list-page">
-            {showHeader && (
-                <div className="page-header-section">
-                    <div className="header-info">
-                        <Title level={2}><AimOutlined /> 职位 JD 管理库</Title>
-                        <Text type="secondary">在这里管理您感兴趣的职位，AI 将自动分析其核心需求</Text>
-                    </div>
-                    <div className="header-actions">
+        <div className="job-list-container">
+            <div className="page-header">
+                <div className="header-left">
+                    <Title level={1}>职位管理库</Title>
+                    <Text type="secondary" style={{ fontSize: 17 }}>
+                        在这里集纳您感兴趣的职位 JD，AI 会自动为您分析岗位胜任力模型。
+                    </Text>
+                </div>
+                <div className="header-right">
+                    <Space size={16}>
                         <Input
                             prefix={<SearchOutlined />}
                             placeholder="搜索职位或公司..."
+                            variant="filled"
                             onChange={e => setSearchText(e.target.value)}
-                            style={{ width: 250, marginRight: 16 }}
+                            style={{ width: 260, borderRadius: 12, height: 48 }}
                         />
-                        <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => navigate('/jobs/create')}>录入新职位</Button>
-                    </div>
+                        <Button
+                            type="primary"
+                            size="large"
+                            icon={<PlusOutlined />}
+                            onClick={() => setIsCreateModalOpen(true)}
+                            style={{ height: 48, borderRadius: 24, padding: '0 24px' }}
+                        >
+                            录入新职位
+                        </Button>
+                    </Space>
                 </div>
-            )}
-
-            <div style={{ paddingBottom: 16, display: showHeader ? 'none' : 'flex', justifyContent: 'flex-end' }}>
-                <Space>
-                    <Input
-                        prefix={<SearchOutlined />}
-                        placeholder="检索职位..."
-                        onChange={e => setSearchText(e.target.value)}
-                        style={{ width: 200 }}
-                    />
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/jobs/create')}>录入新职位</Button>
-                </Space>
             </div>
 
             {loading ? (
-                <div className="loading-state"><Spin size="large" tip="正在同步并解析职位..." /></div>
+                <div className="loading-state"><Spin size="large" tip="正在同步职位清单..." /></div>
             ) : filteredJobs.length > 0 ? (
-                <Row gutter={[20, 20]} className="jobs-grid">
-                    {filteredJobs.map(renderJobCard)}
+                <Row gutter={[24, 24]}>
+                    {filteredJobs.map(job => (
+                        <Col xs={24} md={12} xl={8} key={job.id}>
+                            <Card className="apple-job-card shadow-soft" hoverable>
+                                <div className="job-card-top">
+                                    <div className="company-logo-placeholder">
+                                        {job.company.substring(0, 1).toUpperCase()}
+                                    </div>
+                                    <div className="job-meta">
+                                        <Title level={4} style={{ margin: 0 }}>{job.title}</Title>
+                                        <Text type="secondary" style={{ fontSize: 15 }}>{job.company}</Text>
+                                    </div>
+                                    <Badge status={job.status === 'parsed' ? 'success' : 'processing'} />
+                                </div>
+
+                                <div className="job-card-middle">
+                                    {job.parsed_data ? (
+                                        <Space wrap size={4}>
+                                            <Tag bordered={false} className="apple-tag-pill">{job.parsed_data.location || '远程'}</Tag>
+                                            <Tag bordered={false} className="apple-tag-pill green">{job.parsed_data.salary_range || '面议'}</Tag>
+                                            {job.parsed_data.requirements?.skills?.slice(0, 2).map((s: string, i: number) => (
+                                                <Tag key={i} bordered={false} className="apple-tag-pill">{s}</Tag>
+                                            ))}
+                                        </Space>
+                                    ) : (
+                                        <Text type="secondary" style={{ fontSize: 13 }}>AI 正在解析职位细节...</Text>
+                                    )}
+                                </div>
+
+                                <div className="job-card-bottom">
+                                    <Button type="text" onClick={() => handleViewDetail(job.id)} className="apple-btn-text">
+                                        查看详情
+                                    </Button>
+                                    <Space>
+                                        <Tooltip title="前往分析">
+                                            <Button type="text" icon={<ThunderboltOutlined />} onClick={() => navigate('/match')} />
+                                        </Tooltip>
+                                        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(job.id)} />
+                                    </Space>
+                                </div>
+                            </Card>
+                        </Col>
+                    ))}
                 </Row>
             ) : (
-                <Card className="empty-state">
-                    <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description={searchText ? "未找到相关职位" : "您的职位库还是空的"}
-                    >
-                        {!searchText && <Button type="primary" onClick={() => navigate('/jobs/create')}>立刻添加第一个职位</Button>}
-                    </Empty>
-                </Card>
+                <Empty description="暂无职位记录" style={{ marginTop: 100 }}>
+                    <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>添加第一个职位</Button>
+                </Empty>
             )}
 
-            <Modal title={null} open={isDetailOpen} onCancel={() => setIsDetailOpen(false)} footer={null} width={850} className="job-detail-modal-root">
-                <div className="modal-custom-header">
-                    <Badge status="success" />
-                    <Title level={3} style={{ margin: '0 0 4px 0' }}>{currentJob?.title}</Title>
-                    <Text type="secondary">{currentJob?.company}</Text>
-                </div>
-                {renderParsedDetail()}
+            {/* 查看详情 Modal */}
+            <Modal title={null} open={isDetailOpen} onCancel={() => setIsDetailOpen(false)} footer={null} width={750} centered>
+                {currentJob && (
+                    <div className="job-detail-overlay">
+                        <div className="detail-header">
+                            <Title level={2}>{currentJob.title}</Title>
+                            <Text strong style={{ fontSize: 18, color: 'var(--apple-blue)' }}>{currentJob.company}</Text>
+                        </div>
+                        <Divider />
+                        <div className="detail-sections">
+                            <section>
+                                <Title level={4}>任职核心要求</Title>
+                                <Space wrap>
+                                    {currentJob.parsed_data?.requirements?.skills?.map((s: string, i: number) => (
+                                        <Tag key={i} className="apple-tag">{s}</Tag>
+                                    ))}
+                                </Space>
+                            </section>
+                            <section style={{ marginTop: 24 }}>
+                                <Title level={4}>岗位职责</Title>
+                                <ul className="apple-list">
+                                    {currentJob.parsed_data?.responsibilities?.map((r: string, i: number) => (
+                                        <li key={i}>{r}</li>
+                                    ))}
+                                </ul>
+                            </section>
+                        </div>
+                        <div className="modal-actions">
+                            <Button
+                                type="primary"
+                                size="large"
+                                style={{ width: '100%', height: 48, borderRadius: 12, fontWeight: 600, fontSize: 16 }}
+                                icon={<ThunderboltOutlined />}
+                                onClick={() => {
+                                    setIsDetailOpen(false);
+                                    navigate('/match', { state: { jobId: currentJob.id } });
+                                }}
+                            >
+                                开始与我的简历进行匹配
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* 录入职位 Modal (整合 JobInput) */}
+            <Modal
+                title="录入新职位"
+                open={isCreateModalOpen}
+                onCancel={() => setIsCreateModalOpen(false)}
+                footer={null}
+                width={700}
+                centered
+                destroyOnClose
+            >
+                <Tabs defaultActiveKey="1" className="apple-tabs">
+                    <Tabs.TabPane tab={<span><EditOutlined /> 直接输入</span>} key="1">
+                        <div style={{ padding: '20px 0' }}>
+                            <Input placeholder="公司名称" size="large" style={{ marginBottom: 16 }} id="new_job_company" />
+                            <Input placeholder="职位名称" size="large" style={{ marginBottom: 16 }} id="new_job_title" />
+                            <TextArea placeholder="粘贴 JD (职位描述) 正文..." rows={10} style={{ borderRadius: 12 }} id="new_job_desc" />
+                            <Button
+                                type="primary"
+                                block
+                                size="large"
+                                style={{ marginTop: 24, height: 48, borderRadius: 12 }}
+                                onClick={async () => {
+                                    const company = (document.getElementById('new_job_company') as HTMLInputElement).value
+                                    const title = (document.getElementById('new_job_title') as HTMLInputElement).value
+                                    const description = (document.getElementById('new_job_desc') as HTMLTextAreaElement).value
+                                    if (!company || !title || !description) return message.warning('请填写完整信息')
+                                    try {
+                                        await axios.post(`${baseUrl}/jobs/`, { company, title, description })
+                                        message.success('录入成功')
+                                        setIsCreateModalOpen(false)
+                                        fetchJobs()
+                                    } catch { message.error('录入失败') }
+                                }}
+                            >
+                                提交并智能解析
+                            </Button>
+                        </div>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab={<span><GlobalOutlined /> 链接采集</span>} key="2">
+                        <div style={{ padding: '20px 0', textAlign: 'center' }}>
+                            <Text type="secondary">支持 Boss直聘、猎聘、拉勾等主流招聘渠道链接</Text>
+                            <Input placeholder="https://..." size="large" style={{ marginTop: 16, marginBottom: 24 }} />
+                            <Button type="primary" block size="large" style={{ height: 48, borderRadius: 12 }}>抓取数据</Button>
+                        </div>
+                    </Tabs.TabPane>
+                </Tabs>
             </Modal>
         </div>
     )

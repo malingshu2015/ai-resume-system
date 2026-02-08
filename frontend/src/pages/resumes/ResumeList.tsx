@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
     Table, Button, Card, Upload, message, Space, Tag, Modal, Typography,
-    Divider, Spin, Row, Col, Statistic, Tooltip
+    Divider, Spin, Row, Col, Tabs
 } from 'antd'
 import {
     UploadOutlined, FileTextOutlined, DeleteOutlined, EyeOutlined,
-    SyncOutlined, UserOutlined, BookOutlined,
-    InboxOutlined, CheckCircleOutlined, InfoCircleOutlined,
-    ThunderboltOutlined
+    SyncOutlined, InboxOutlined, CheckCircleOutlined, InfoCircleOutlined,
+    ThunderboltOutlined, MailOutlined, ArrowRightOutlined,
+    PhoneOutlined, EnvironmentOutlined
 } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
 import axios from 'axios'
-import ResumeGenerator from '../../components/ResumeGenerator'
 import './ResumeList.css'
 
 const { Title, Text, Paragraph } = Typography
@@ -23,16 +23,20 @@ interface Resume {
     status: string
     created_at: string
     parsed_data?: any
+    is_optimized?: boolean
+    target_job_title?: string
+    target_job_company?: string
+    optimization_notes?: string
 }
 
-const ResumeList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) => {
+const ResumeList: React.FC = () => {
+    const navigate = useNavigate()
     const [resumes, setResumes] = useState<Resume[]>([])
     const [loading, setLoading] = useState(false)
-    const [uploading, setUploading] = useState(false)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
     const [currentResume, setCurrentResume] = useState<Resume | null>(null)
     const [detailLoading, setDetailLoading] = useState(false)
-    const [showGenerator, setShowGenerator] = useState(false)
+    const [activeTab, setActiveTab] = useState('original')
 
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
@@ -40,7 +44,9 @@ const ResumeList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) =
         setLoading(true)
         try {
             const response = await axios.get(`${baseUrl}/resumes/`)
-            setResumes(response.data)
+            // 兼容性处理
+            const data = Array.isArray(response.data) ? response.data : response.data?.data || []
+            setResumes(data)
         } catch (error) {
             console.error('获取简历列表失败:', error)
             message.error('获取简历列表失败')
@@ -53,37 +59,23 @@ const ResumeList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) =
         fetchResumes()
     }, [])
 
-    const handlePreview = async (id: string) => {
-        setDetailLoading(true)
-        setIsPreviewOpen(true)
-        try {
-            const response = await axios.get(`${baseUrl}/resumes/${id}`)
-            setCurrentResume(response.data)
-        } catch (error) {
-            message.error('获取简历详情失败')
-            setIsPreviewOpen(false)
-        } finally {
-            setDetailLoading(false)
-        }
-    }
 
     const handleDelete = (id: string) => {
         Modal.confirm({
-            title: '确认删除简历？',
-            icon: <InfoCircleOutlined style={{ color: '#ff4d4f' }} />,
+            title: '确认移除此简历？',
+            icon: <InfoCircleOutlined style={{ color: '#FF3B30' }} />,
             content: '删除后将丢失该简历的所有解析数据，无法恢复。',
-            okText: '确认删除',
+            okText: '移除',
             okType: 'danger',
             cancelText: '取消',
+            centered: true,
             onOk: async () => {
                 try {
-                    console.log('正在删除简历:', id);
                     await axios.delete(`${baseUrl}/resumes/${id}`)
                     message.success('简历已成功移出库')
-                    fetchResumes() // 刷新列表确保数据一致
+                    fetchResumes()
                 } catch (error) {
-                    console.error('删除简历失败:', error)
-                    message.error('删除操作失败，请检查网络或后端日志')
+                    message.error('删除操作失败')
                 }
             }
         })
@@ -96,37 +88,59 @@ const ResumeList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) =
         showUploadList: false,
         onChange(info) {
             if (info.file.status === 'uploading') {
-                setUploading(true)
                 return
             }
             if (info.file.status === 'done') {
-                setUploading(false)
-                message.success(`${info.file.name} 已成功入库并启动智能解析`)
+                message.success(`${info.file.name} 已入库并开始解析`)
                 fetchResumes()
             } else if (info.file.status === 'error') {
-                setUploading(false)
-                message.error(`${info.file.name} 上传解析失败`)
+                message.error(`${info.file.name} 上传失败`)
             }
         },
     }
 
     const columns = [
         {
-            title: '文件信息',
+            title: '简历名称',
             dataIndex: 'filename',
             key: 'filename',
-            render: (text: string) => (
-                <Space>
-                    <div className="file-icon-box">
-                        <FileTextOutlined />
+            render: (text: string, record: Resume) => (
+                <Space size={12}>
+                    <div className={`apple-icon-circle ${record.is_optimized ? 'green' : 'blue'}`}>
+                        {record.is_optimized ? <ThunderboltOutlined /> : <FileTextOutlined />}
                     </div>
                     <div>
-                        <Text strong style={{ fontSize: '15px' }}>{text}</Text>
-                        <br />
-                        <Text type="secondary" style={{ fontSize: '12px' }}>Resume File</Text>
+                        <Space size={4}>
+                            <Text strong style={{ fontSize: 15 }}>{text}</Text>
+                        </Space>
+                        {!record.is_optimized && (
+                            <div>
+                                <Text type="secondary" style={{ fontSize: 12 }}>结构化解析完成</Text>
+                            </div>
+                        )}
                     </div>
                 </Space>
             )
+        },
+        {
+            title: activeTab === 'optimized' ? '针对岗位' : '分类',
+            key: 'target_job',
+            hidden: false,
+            render: (_: any, record: Resume) => {
+                if (record.is_optimized) {
+                    return (
+                        <Space direction="vertical" size={0}>
+                            <Tag color="cyan" style={{ border: 'none', background: '#e6fffb', color: '#08979c', fontWeight: 600, padding: '2px 10px', borderRadius: 4 }}>
+                                🎯 {record.target_job_title}
+                            </Tag>
+                            <Text type="secondary" style={{ fontSize: 11, marginLeft: 4 }}>
+                                {record.target_job_company}
+                            </Text>
+                        </Space>
+                    )
+                }
+                return <Tag color="blue" style={{ border: 'none' }}>原始简历</Tag>
+            }
         },
         {
             title: '解析状态',
@@ -134,165 +148,290 @@ const ResumeList: React.FC<{ showHeader?: boolean }> = ({ showHeader = true }) =
             key: 'status',
             render: (status: string) => {
                 const config: any = {
-                    parsed: { color: 'success', text: '解析完成', icon: <CheckCircleOutlined /> },
-                    parsing: { color: 'processing', text: '智能解析中...', icon: <SyncOutlined spin /> },
-                    failed: { color: 'error', text: '解析失败', icon: <InfoCircleOutlined /> }
+                    parsed: { color: '#34C759', text: '就绪' },
+                    parsing: { color: '#007AFF', text: '解析中' },
+                    optimized: { color: '#52c41a', text: 'AI 优化' },
+                    failed: { color: '#FF3B30', text: '异常' }
                 }
-                const { color, text, icon } = config[status] || { color: 'default', text: '待处理' }
-                return <Tag icon={icon} color={color} className="status-tag">{text}</Tag>
+                const { color, text } = config[status] || { color: '#8E8E93', text: '待处理' }
+                return (
+                    <Space>
+                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
+                        <Text style={{ color }}>{text}</Text>
+                    </Space>
+                )
             }
         },
         {
-            title: '上传日期',
+            title: '操作时间',
             dataIndex: 'created_at',
             key: 'created_at',
             render: (date: string) => (
-                <Text type="secondary">{new Date(date).toLocaleString().split(' ')[0]}</Text>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                    {new Date(date).toLocaleDateString()}
+                </Text>
             )
         },
         {
-            title: '操作',
+            title: '',
             key: 'action',
+            align: 'right' as const,
             render: (_: any, record: Resume) => (
-                <Space size="middle">
-                    <Tooltip title="点击预览解析数据">
-                        <Button
-                            type="text"
-                            icon={<EyeOutlined />}
-                            onClick={() => handlePreview(record.id)}
-                            className="action-btn"
-                        >
-                            预览
-                        </Button>
-                    </Tooltip>
+                <Space size={8}>
+                    <Button
+                        type="primary"
+                        size="small"
+                        icon={<EyeOutlined />}
+                        onClick={() => navigate(`/resume/${record.id}`)}
+                    >
+                        查看 / 编辑
+                    </Button>
                     <Button
                         type="text"
                         danger
                         icon={<DeleteOutlined />}
                         onClick={() => handleDelete(record.id)}
-                        className="action-btn"
-                    >
-                        删除
-                    </Button>
+                        className="apple-icon-btn danger"
+                    />
                 </Space>
             )
         }
-    ]
+    ].filter(col => !col.hidden)
 
     return (
-        <div className="resume-list-page">
-            {showHeader && (
-                <div className="header-banner">
-                    <div className="banner-left">
-                        <Title level={2} style={{ color: '#fff', margin: 0 }}>简历中心</Title>
-                        <Text style={{ color: 'rgba(255,255,255,0.85)' }}>所有的简历都将通过 AI 模型进行深度学习，提取结构化数据。</Text>
-                    </div>
-                    <div className="banner-stats">
-                        <Statistic title="已入库简历" value={resumes.length} valueStyle={{ color: '#fff' }} prefix={<FileTextOutlined />} />
-                    </div>
+        <div className="resume-list-container">
+            <div className="page-header">
+                <div className="header-left">
+                    <Title level={1}>我的简历库</Title>
+                    <Text type="secondary" style={{ fontSize: 17 }}>
+                        系统会自动对每一份简历进行深度解析，将其转化为可供 AI 匹配的数据结构。
+                    </Text>
                 </div>
-            )}
-
-            <div style={{ marginTop: showHeader ? 24 : 0 }}>
-                <Row gutter={[24, 24]}>
-                    <Col span={showHeader ? 16 : 24}>
-                        <Card className="main-list-card" title={<Space><FileTextOutlined /> 库中简历</Space>} extra={<Button icon={<SyncOutlined />} onClick={fetchResumes}>刷新列表</Button>}>
-                            <Table
-                                columns={columns}
-                                dataSource={resumes}
-                                rowKey="id"
-                                loading={loading}
-                                pagination={{ pageSize: 8 }}
-                                className="custom-table"
-                            />
-                        </Card>
-                    </Col>
-
-                    <Col span={showHeader ? 8 : 24}>
-                        <Card className="upload-guide-card" title={<Space><UploadOutlined /> 快速入库集</Space>}>
-                            <Dragger {...uploadProps} className="resume-dragger">
-                                <p className="ant-upload-drag-icon">
-                                    <InboxOutlined />
-                                </p>
-                                <p className="ant-upload-text">点击或拖拽上传简历</p>
-                                <p className="ant-upload-hint">支持 PDF, Word, TXT (Max 10MB)</p>
-                            </Dragger>
-                        </Card>
-                    </Col>
-                </Row>
+                <div className="header-right">
+                    <Upload {...uploadProps}>
+                        <Button type="primary" size="large" icon={<UploadOutlined />} style={{ height: 48, borderRadius: 24, padding: '0 24px' }}>
+                            导入简历
+                        </Button>
+                    </Upload>
+                </div>
             </div>
+
+            <Row gutter={[32, 32]}>
+                <Col xs={24} lg={16}>
+                    <Card className="apple-card shadow-soft" extra={<Button type="text" icon={<SyncOutlined />} onClick={fetchResumes} />}>
+                        <Tabs
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
+                            className="resume-tabs"
+                            items={[
+                                {
+                                    key: 'original',
+                                    label: (
+                                        <Space>
+                                            <FileTextOutlined />
+                                            我的原件
+                                            <Tag bordered={false} style={{ marginLeft: 4 }}>
+                                                {resumes.filter(r => !r.is_optimized).length}
+                                            </Tag>
+                                        </Space>
+                                    ),
+                                    children: (
+                                        <Table
+                                            columns={columns}
+                                            dataSource={resumes.filter(r => !r.is_optimized)}
+                                            rowKey="id"
+                                            loading={loading}
+                                            pagination={{ pageSize: 8, hideOnSinglePage: true }}
+                                            className="apple-table"
+                                        />
+                                    )
+                                },
+                                {
+                                    key: 'optimized',
+                                    label: (
+                                        <Space>
+                                            <ThunderboltOutlined />
+                                            岗定定制
+                                            <Tag bordered={false} style={{ marginLeft: 4 }}>
+                                                {resumes.filter(r => r.is_optimized).length}
+                                            </Tag>
+                                        </Space>
+                                    ),
+                                    children: (
+                                        <Table
+                                            columns={columns}
+                                            dataSource={resumes.filter(r => r.is_optimized)}
+                                            rowKey="id"
+                                            loading={loading}
+                                            pagination={{ pageSize: 8, hideOnSinglePage: true }}
+                                            className="apple-table"
+                                        />
+                                    )
+                                }
+                            ]}
+                        />
+                    </Card>
+                </Col>
+
+                <Col xs={24} lg={8}>
+                    <Card className="apple-card shadow-soft" title="快速上传">
+                        <Dragger {...uploadProps} className="apple-dragger">
+                            <p className="dragger-icon"><InboxOutlined /></p>
+                            <p className="dragger-text">拖拽简历至此</p>
+                            <p className="dragger-hint">支持 PDF, Word, TXT</p>
+                        </Dragger>
+                        <Divider style={{ margin: '24px 0' }} />
+                        <div className="upload-notice">
+                            <Title level={5}>💡 解析说明</Title>
+                            <Text type="secondary" style={{ fontSize: 13 }}>
+                                后台 AI 正在从您的简历中提取技能词云、项目履历和 STAR 成就。解析完成后，您可以立即进行智能匹配分析。
+                            </Text>
+                        </div>
+                    </Card>
+                </Col>
+            </Row>
 
             <Modal
                 title={null}
                 open={isPreviewOpen}
                 onCancel={() => setIsPreviewOpen(false)}
                 footer={null}
-                width={850}
-                className="resume-preview-modal"
+                width={800}
+                centered
+                destroyOnClose
             >
-                <div className="modal-header-accent" />
                 {detailLoading ? (
-                    <div className="detail-loading-box"><Spin size="large" tip="AI 正在读取解析结果..." /></div>
+                    <div className="modal-loading"><Spin size="large" tip="AI 正在读取结构化数据..." /></div>
                 ) : (
-                    <div className="preview-container">
-                        <div className="preview-top">
-                            <Title level={3}>{currentResume?.parsed_data?.basic_info?.name || '未命名简历'}</Title>
-                            <Space wrap>
-                                <Tag icon={<UserOutlined />}>{currentResume?.parsed_data?.basic_info?.phone || '无电话'}</Tag>
-                                <Tag icon={<InboxOutlined />}>{currentResume?.parsed_data?.basic_info?.email || '无邮箱'}</Tag>
-                                <Tag icon={<BookOutlined />}>{currentResume?.parsed_data?.basic_info?.location || '无位置'}</Tag>
-                            </Space>
+                    <div className="resume-detail-overlay">
+                        <div className="resume-detail-header">
+                            <Title level={2}>{currentResume?.parsed_data?.basic_info?.name || '未命名简历'}</Title>
+                            <Row gutter={[16, 8]}>
+                                <Col><Space><PhoneOutlined /> {currentResume?.parsed_data?.basic_info?.phone || '--'}</Space></Col>
+                                <Col><Space><MailOutlined /> {currentResume?.parsed_data?.basic_info?.email || '--'}</Space></Col>
+                                <Col><Space><EnvironmentOutlined /> {currentResume?.parsed_data?.basic_info?.location || '--'}</Space></Col>
+                            </Row>
                         </div>
 
-                        <Divider>核心技能集</Divider>
-                        <div className="skill-section-preview">
-                            {currentResume?.parsed_data?.skills?.map((s: string, i: number) => (
-                                <Tag key={i} color="processing" className="preview-skill-tag">{s}</Tag>
-                            ))}
-                        </div>
-
-                        <Divider>工作履历</Divider>
-                        <div className="experience-timeline">
-                            {currentResume?.parsed_data?.work_experience?.map((work: any, i: number) => (
-                                <div className="timeline-item" key={i}>
-                                    <div className="timeline-dot" />
-                                    <div className="list-item-header">
-                                        <Text strong>{work.company}</Text>
-                                        <Text type="secondary">{work.start_date} - {work.end_date}</Text>
-                                    </div>
-                                    <Paragraph className="job-role">{work.position}</Paragraph>
-                                    <Paragraph className="job-desc">{work.description}</Paragraph>
+                        <div className="resume-detail-content">
+                            <section className="detail-section">
+                                <Title level={4}>核心技能</Title>
+                                <div className="skill-cloud">
+                                    {currentResume?.parsed_data?.skills?.map((s: string, i: number) => (
+                                        <Tag key={i} className="apple-tag">{s}</Tag>
+                                    ))}
                                 </div>
-                            ))}
+                            </section>
+
+                            <section className="detail-section">
+                                <Title level={4}>经历概览</Title>
+                                {currentResume?.parsed_data?.work_experience?.map((work: any, i: number) => (
+                                    <div className="exp-item" key={i}>
+                                        <div className="exp-dot" />
+                                        <div className="exp-header">
+                                            <Text strong style={{ fontSize: 16 }}>{work.company}</Text>
+                                            <Text type="secondary">{work.start_date} - {work.end_date}</Text>
+                                        </div>
+                                        <Paragraph style={{ marginBottom: 4, fontWeight: 600 }}>{work.position}</Paragraph>
+                                        <Paragraph type="secondary" style={{ fontSize: 14 }}>{work.description}</Paragraph>
+                                    </div>
+                                ))}
+                            </section>
                         </div>
 
-                        <div className="modal-footer">
-                            <Space size="middle">
+                        {/* 操作面板：根据简历类型显示不同操作 */}
+                        {currentResume?.is_optimized ? (
+                            <div className="optimized-resume-actions">
+                                {/* AI 优化版简历的信息卡片 */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)',
+                                    borderRadius: 12,
+                                    padding: 16,
+                                    marginBottom: 16,
+                                    border: '1px solid #b7eb8f'
+                                }}>
+                                    <Space>
+                                        <ThunderboltOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+                                        <Text strong>AI 优化版简历</Text>
+                                    </Space>
+                                    <div style={{ marginTop: 8 }}>
+                                        <Text type="secondary">
+                                            🎯 目标岗位：{currentResume.target_job_company} - {currentResume.target_job_title}
+                                        </Text>
+                                    </div>
+                                    {currentResume.optimization_notes && (
+                                        <div style={{ marginTop: 4 }}>
+                                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                                {currentResume.optimization_notes}
+                                            </Text>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 操作按钮组 */}
+                                <Row gutter={[12, 12]}>
+                                    <Col span={12}>
+                                        <Button
+                                            type="primary"
+                                            icon={<MailOutlined />}
+                                            size="large"
+                                            block
+                                            style={{ height: 48, borderRadius: 8 }}
+                                            onClick={() => message.info('邮件发送功能开发中')}
+                                        >
+                                            邮件发送
+                                        </Button>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Button
+                                            icon={<FileTextOutlined />}
+                                            size="large"
+                                            block
+                                            style={{ height: 48, borderRadius: 8 }}
+                                            onClick={() => message.info('PDF 导出功能开发中')}
+                                        >
+                                            导出 PDF
+                                        </Button>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Button
+                                            icon={<ThunderboltOutlined />}
+                                            size="large"
+                                            block
+                                            style={{ height: 48, borderRadius: 8 }}
+                                            onClick={() => message.info('生成长图功能开发中')}
+                                        >
+                                            生成长图
+                                        </Button>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Button
+                                            icon={<ArrowRightOutlined />}
+                                            size="large"
+                                            block
+                                            style={{ height: 48, borderRadius: 8 }}
+                                            onClick={() => message.info('生成链接功能开发中')}
+                                        >
+                                            生成链接
+                                        </Button>
+                                    </Col>
+                                </Row>
+                            </div>
+                        ) : (
+                            <div className="modal-actions">
                                 <Button
                                     type="primary"
                                     size="large"
                                     icon={<ThunderboltOutlined />}
-                                    onClick={() => setShowGenerator(true)}
+                                    style={{ width: '100%', height: 48, borderRadius: 12 }}
+                                    onClick={() => {
+                                        setIsPreviewOpen(false)
+                                        window.location.href = `/match?resumeId=${currentResume?.id}`
+                                    }}
                                 >
-                                    生成优化简历
+                                    针对此简历进行职位匹配
                                 </Button>
-                                <Button
-                                    size="large"
-                                    onClick={() => setIsPreviewOpen(false)}
-                                >
-                                    关闭预览
-                                </Button>
-                            </Space>
-                        </div>
-
-                        {showGenerator && currentResume && (
-                            <>
-                                <Divider>智能简历生成器</Divider>
-                                <ResumeGenerator
-                                    resumeId={currentResume.id}
-                                    onClose={() => setShowGenerator(false)}
-                                />
-                            </>
+                            </div>
                         )}
                     </div>
                 )}

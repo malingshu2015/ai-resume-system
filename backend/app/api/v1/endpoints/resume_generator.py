@@ -1,12 +1,23 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict
+from sqlalchemy.orm import Session
 import os
 
 from app.services.resume_generator import resume_generator
+from app.db.session import get_db
+from app.models.resume import Resume
+from app.models.job import Job
 
 router = APIRouter()
+
+
+class SuggestionItem(BaseModel):
+    """单条优化建议"""
+    category: str
+    content: str
+    template: Optional[str] = None
 
 
 class GenerateResumeRequest(BaseModel):
@@ -14,7 +25,9 @@ class GenerateResumeRequest(BaseModel):
     resume_id: str
     job_id: Optional[str] = None  # 目标职位ID，用于定向优化
     template: str = "modern"  # modern, professional, creative, minimal
-    optimization_suggestions: Optional[Dict] = None
+    suggestions: Optional[List[SuggestionItem]] = None  # 用户选择并可能编辑过的建议列表
+    optimization_suggestions: Optional[Dict] = None  # 保留向后兼容
+    save_to_library: bool = True  # 是否保存到简历库（默认是）
 
 
 class ExportResumeRequest(BaseModel):
@@ -25,22 +38,89 @@ class ExportResumeRequest(BaseModel):
 
 
 @router.post("/generate")
-async def generate_optimized_resume(request: GenerateResumeRequest):
+async def generate_optimized_resume(
+    request: GenerateResumeRequest,
+    db: Session = Depends(get_db)
+):
     """
-    生成优化后的简历
+    生成优化后的简历，并自动保存到简历库
     """
     try:
+        # 优先使用 suggestions 列表，如果没有则使用 optimization_suggestions
+        optimization_data = None
+        if request.suggestions:
+            # 将建议列表转换为优化数据格式
+            optimization_data = {
+                "suggestions": [
+                    {
+                        "category": s.category,
+                        "content": s.content,
+                        "template": s.template
+                    }
+                    for s in request.suggestions
+                ]
+            }
+        elif request.optimization_suggestions:
+            optimization_data = request.optimization_suggestions
+        
+        # 调用 AI 生成优化简历
         generated_resume = await resume_generator.generate_optimized_resume(
             resume_id=request.resume_id,
             job_id=request.job_id,
-            optimization_suggestions=request.optimization_suggestions,
+            optimization_suggestions=optimization_data,
             template=request.template
         )
         
+        # 获取原始简历和目标岗位信息
+        original_resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        target_job = None
+        if request.job_id:
+            target_job = db.query(Job).filter(Job.id == request.job_id).first()
+        
+        saved_resume_id = None
+        
+        # 保存到简历库
+        if request.save_to_library and original_resume:
+            # 生成新简历的文件名
+            original_name = original_resume.filename.rsplit('.', 1)[0] if original_resume.filename else "简历"
+            job_suffix = f"_{target_job.title}" if target_job else "_优化版"
+            new_filename = f"{original_name}{job_suffix}"
+            
+            # 生成优化说明
+            optimization_notes = f"基于 AI 深度分析自动优化"
+            if target_job:
+                optimization_notes = f"针对【{target_job.company} - {target_job.title}】岗位深度优化"
+            
+            # 创建新的简历记录
+            new_resume = Resume(
+                filename=new_filename,
+                file_path=None,  # AI 生成的简历暂无物理文件
+                file_type="ai_generated",
+                parsed_data=generated_resume.get("content", {}),
+                status="optimized",
+                is_optimized=True,
+                parent_resume_id=request.resume_id,
+                target_job_id=request.job_id,
+                target_job_title=target_job.title if target_job else None,
+                target_job_company=target_job.company if target_job else None,
+                optimization_notes=optimization_notes
+            )
+            db.add(new_resume)
+            db.commit()
+            db.refresh(new_resume)
+            saved_resume_id = new_resume.id
+        
         return {
             "success": True,
-            "message": "简历生成成功",
-            "data": generated_resume
+            "message": "简历生成成功，已保存到简历库" if saved_resume_id else "简历生成成功",
+            "data": generated_resume,
+            "saved_resume_id": saved_resume_id,
+            "target_job": {
+                "id": target_job.id,
+                "title": target_job.title,
+                "company": target_job.company
+            } if target_job else None,
+            "optimized_resume": generated_resume.get("optimized_content", "")
         }
         
     except ValueError as e:

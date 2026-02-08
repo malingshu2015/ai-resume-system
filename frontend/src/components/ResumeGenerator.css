@@ -1,36 +1,46 @@
 .resume-generator-container {
-    padding: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
+    padding: 0;
+    max-width: 100%;
 }
 
 .generator-card {
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+.generator-card .ant-card-body {
+    padding: 20px;
 }
 
 .generator-card .ant-card-head-title {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
 }
 
 .selection-card {
     height: 100%;
-    border: 1px solid #f0f0f0;
-    border-radius: 8px;
+    border: none;
+    background: transparent;
 }
 
 .selection-card .ant-card-head {
-    background: #fafafa;
-    border-radius: 8px 8px 0 0;
+    background: transparent;
+    border: none;
+    padding: 0;
+    min-height: auto;
 }
 
 .selection-card .ant-select-selector {
-    border-radius: 8px !important;
+    border-radius: 6px !important;
+    border: 1px solid #d9d9d9 !important;
+}
+
+.selection-card .ant-select-selector:hover {
+    border-color: #40a9ff !important;
 }
 
 .ant-select-item-option-content {
-    padding: 8px 0;
+    padding: 4px 0;
 }
 
 /* 响应式布局 */
@@ -41,5 +51,47 @@
 
     .ant-col {
         margin-bottom: 16px;
+    }
+}
+
+/* 竖版简历预览样式 */
+.resume-preview-modal .ant-modal-body {
+    padding: 0;
+    background: #f5f5f5;
+}
+
+.resume-preview-container {
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    min-height: 400px;
+}
+
+.resume-preview-page {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    padding: 20mm;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    margin: 0 auto;
+}
+
+/* 打印样式 */
+@media print {
+    .resume-preview-page {
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+    }
+}
+
+/* 小屏幕适配 */
+@media (max-width: 900px) {
+    .resume-preview-page {
+        width: 100%;
+        min-height: auto;
+        padding: 16px;
     }
 }

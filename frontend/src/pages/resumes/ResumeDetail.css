@@ -1,0 +1,503 @@
+/* 简历详情页面样式 */
+
+.resume-detail-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #f5f7fa;
+    min-height: 100vh;
+}
+
+.resume-detail-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* 顶部导航 */
+.detail-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+    padding: 16px 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 内容卡片 */
+.content-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.content-card .ant-card-body {
+    padding: 0;
+}
+
+.content-card .ant-tabs-nav {
+    padding: 0 24px;
+    margin-bottom: 0;
+}
+
+.content-card .ant-tabs-content {
+    padding: 24px;
+}
+
+/* 操作卡片 */
+.action-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.action-card .ant-card-head-title {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* 编辑模式 */
+.edit-mode .section-card {
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+.edit-mode .section-card .ant-card-head {
+    background: #fafafa;
+    border-radius: 8px 8px 0 0;
+}
+
+.field-group {
+    margin-bottom: 4px;
+}
+
+.field-group .ant-typography {
+    font-size: 12px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.experience-item {
+    padding: 16px 0;
+}
+
+/* 预览模式 */
+/* 预览模式核心布局 (参考截图重构) */
+.resume-preview {
+    font-family: 'Inter', 'Segoe UI', 'Roboto', 'PingFang SC', sans-serif;
+    color: #333;
+    line-height: 1.6;
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    min-height: 1100px;
+}
+
+/* 页眉容器：双栏布局 */
+.preview-header-container {
+    padding: 0;
+    position: relative;
+    background: #fff;
+}
+
+.preview-header-main {
+    display: flex;
+    justify-content: space-between;
+    padding: 40px;
+    gap: 30px;
+    /* 增加背景装饰图 */
+    background-image: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url('https://www.transparenttextures.com/patterns/white-diamond.png');
+}
+
+.header-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.resume-label {
+    font-size: 20px;
+    font-weight: 300;
+    letter-spacing: 5px;
+    color: #444;
+    margin-bottom: 4px;
+}
+
+.label-divider {
+    margin: 4px 0 16px 0 !important;
+    border-top: 3px solid #333 !important;
+    width: 30px;
+    min-width: 30px;
+}
+
+.person-name {
+    margin: 0 0 24px 0 !important;
+    font-size: 48px !important;
+    font-weight: 800 !important;
+    color: #1a1a1a;
+    letter-spacing: 2px;
+}
+
+/* 个人信息网格 (截图中的灰色半透明网格) */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.info-item {
+    font-size: 14px;
+    padding: 10px 15px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.info-label {
+    color: #666;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.info-value {
+    color: #333;
+}
+
+/* 右侧头像容器 */
+.header-right {
+    flex: 0 0 160px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.profile-avatar {
+    width: 160px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid #eee;
+}
+
+.avatar-placeholder {
+    width: 160px;
+    height: 200px;
+    background: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: #ccc;
+    border-radius: 4px;
+    border: 1px dashed #ddd;
+}
+
+/* 章节通用样式 */
+.preview-section {
+    padding: 24px 40px;
+}
+
+.section-title {
+    margin-bottom: 20px !important;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    position: relative;
+    color: #1a1a1a;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background: #1890ff;
+}
+
+/* 求职意向模块 (参考截图) */
+.intention-section {
+    background: #fff;
+    margin-top: -10px;
+}
+
+.intention-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 4px;
+}
+
+.intention-item {
+    padding: 12px 20px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    font-size: 14px;
+}
+
+/* 工作经历样式 */
+.experience-preview {
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.exp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.company-name {
+    font-size: 17px;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.duration {
+    font-size: 14px;
+    color: #888;
+}
+
+.position-row {
+    margin-bottom: 10px;
+}
+
+.position-text {
+    display: inline-block;
+    background: #f0f7ff;
+    padding: 3px 12px;
+    border-radius: 20px;
+    color: #0050b3;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.exp-desc {
+    color: #555;
+    font-size: 14px;
+    margin-bottom: 10px !important;
+    text-align: justify;
+}
+
+.achievements {
+    list-style: none;
+    padding-left: 0;
+    color: #555;
+    font-size: 13.5px;
+}
+
+.achievements li {
+    margin-bottom: 6px;
+    padding-left: 18px;
+    position: relative;
+}
+
+.achievements li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #1890ff;
+    font-weight: bold;
+}
+
+/* 技能标签列表 */
+.skills-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.skill-group {
+    display: flex;
+    align-items: flex-start;
+}
+
+.skill-category {
+    font-size: 14px;
+    min-width: 80px;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.skill-tag {
+    margin-bottom: 8px !important;
+    border-radius: 4px !important;
+    padding: 4px 12px !important;
+    font-size: 13px !important;
+    background: #f5f5f5 !important;
+    border: 1px solid #e8e8e8 !important;
+    color: #666 !important;
+}
+
+/* ===== 各模板主题定制 (保留原有色感，融入新布局) ===== */
+
+/* 1. 科技蓝 (Modern) */
+.template-modern .section-title::after {
+    background: #1890ff;
+}
+
+.template-modern .person-name {
+    color: #003a8c;
+}
+
+.template-modern .label-divider {
+    border-color: #1890ff !important;
+}
+
+.template-modern .position-text {
+    background: #e6f7ff;
+    color: #1890ff;
+}
+
+.template-modern .achievements li::before {
+    color: #1890ff;
+}
+
+/* 2. 商务金 (Professional) */
+.template-professional .section-title::after {
+    background: #d4a574;
+}
+
+.template-professional .person-name {
+    color: #1a1a2e;
+}
+
+.template-professional .label-divider {
+    border-color: #d4a574 !important;
+}
+
+.template-professional .position-text {
+    background: #fff7e6;
+    color: #ad6200;
+}
+
+.template-professional .achievements li::before {
+    color: #d4a574;
+}
+
+.template-professional .preview-header-main {
+    background-image: linear-gradient(rgba(255, 254, 248, 0.92), rgba(255, 254, 248, 0.92)), url('https://www.transparenttextures.com/patterns/notebook.png');
+}
+
+/* 3. 创意紫 (Creative) */
+.template-creative .section-title::after {
+    background: #722ed1;
+}
+
+.template-creative .person-name {
+    background: linear-gradient(135deg, #722ed1, #eb2f96);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.template-creative .label-divider {
+    border-color: #722ed1 !important;
+}
+
+.template-creative .position-text {
+    background: #f9f0ff;
+    color: #722ed1;
+}
+
+.template-creative .achievements li::before {
+    color: #722ed1;
+}
+
+.template-creative .skill-tag {
+    border-color: #efdbff !important;
+    color: #722ed1 !important;
+}
+
+/* 4. 极简黑 (Minimal) */
+.template-minimal .section-title::after {
+    background: #000;
+}
+
+.template-minimal .person-name {
+    color: #000;
+    font-family: 'Georgia', serif;
+}
+
+.template-minimal .label-divider {
+    border-color: #000 !important;
+}
+
+.template-minimal .position-text {
+    background: #fff;
+    border: 1px solid #000;
+    color: #000;
+    border-radius: 0;
+}
+
+.template-minimal .achievements li::before {
+    color: #000;
+}
+
+.template-minimal .info-grid {
+    border: 2px solid #000;
+    background: #fff;
+}
+
+.template-minimal .intention-grid {
+    border: 2px solid #000;
+}
+
+/* ===== 通用组件样式补丁 ===== */
+.ai-highlight {
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.ai-add {
+    background-color: rgba(82, 196, 26, 0.15) !important;
+    border-bottom: 2px solid #52c41a;
+}
+
+.ai-modify {
+    background-color: rgba(250, 173, 20, 0.15) !important;
+    border-bottom: 2px solid #faad14;
+}
+
+.edit-save-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    margin-top: 40px;
+    background: #fff;
+    border: 2px dashed #e8e8e8;
+    border-radius: 12px;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(24, 144, 255, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+    }
+}
+
+.detail-header .ant-btn-primary {
+    animation: pulse 2s infinite;
+}
+
+.avatar-uploader>.ant-upload {
+    width: 160px !important;
+    height: 200px !important;
+    margin: 0 auto;
+}
