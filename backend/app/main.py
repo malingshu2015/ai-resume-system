@@ -9,24 +9,39 @@ from app.models import resume, job, match, ai_config, job_search  # 导入模型
 
 # 手动添加缺失的列（采用更稳健的连接方式）
 from sqlalchemy import text, inspect
-with engine.begin() as conn:
-    try:
-        # 使用 inspector 检查列是否存在，防止 ALTER TABLE 重复执行报错
-        inspector = inspect(engine)
+try:
+    # 1. 先检查列（在事务外进行探测）
+    inspector = inspect(engine)
+    if 'resumes' in inspector.get_table_names():
         columns = [c['name'] for c in inspector.get_columns('resumes')]
         
+        # 2. 如果有缺失字段，再开启事务执行 ALTER
+        missing_cols = []
         if 'avatar_url' not in columns:
-            conn.execute(text("ALTER TABLE resumes ADD COLUMN avatar_url VARCHAR;"))
-            print("Successfully added avatar_url column to resumes table.")
+            missing_cols.append(("avatar_url", "VARCHAR"))
             
-        # 同时检查其他可能缺失的优化版字段
-        optimization_cols = ['is_optimized', 'parent_resume_id', 'target_job_id', 'target_job_title', 'target_job_company', 'optimization_notes']
-        for col in optimization_cols:
-            if col not in columns:
-                conn.execute(text(f"ALTER TABLE resumes ADD COLUMN {col} VARCHAR;"))
+        optimization_cols = [
+            ('is_optimized', 'VARCHAR'), 
+            ('parent_resume_id', 'VARCHAR'), 
+            ('target_job_id', 'VARCHAR'), 
+            ('target_job_title', 'VARCHAR'), 
+            ('target_job_company', 'VARCHAR'), 
+            ('optimization_notes', 'VARCHAR'),
+            ('share_token', 'VARCHAR'),
+            ('share_expires_at', 'TIMESTAMP')
+        ]
         
-    except Exception as e:
-        print(f"Migration error: {e}")
+        for col_name, col_type in optimization_cols:
+            if col_name not in columns:
+                missing_cols.append((col_name, col_type))
+        
+        if missing_cols:
+            with engine.begin() as conn:
+                for col_name, col_type in missing_cols:
+                    conn.execute(text(f"ALTER TABLE resumes ADD COLUMN {col_name} {col_type};"))
+                    print(f"Successfully added {col_name} column to resumes table.")
+except Exception as e:
+    print(f"Migration error: {e}")
 
 from fastapi.staticfiles import StaticFiles
 import os
@@ -37,12 +52,16 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# 确保 uploads 目录存在
+# 确保 uploads 和 exports 目录存在
 if not os.path.exists(settings.UPLOAD_DIR):
     os.makedirs(settings.UPLOAD_DIR)
 
+if not os.path.exists("exports"):
+    os.makedirs("exports")
+
 # 挂载静态文件目录
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+app.mount("/exports", StaticFiles(directory="exports"), name="exports")
 
 # CORS 配置 - 万能配置以确保调试通过
 app.add_middleware(

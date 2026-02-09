@@ -9,15 +9,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Card, Button, message, Typography, Space, Tag, Row, Col, Spin,
-    Select, Divider, Input, Modal, Tabs, Alert, Upload
+    Select, Divider, Input, Tabs, Alert, Upload
 } from 'antd';
 import {
-    SaveOutlined, MailOutlined, DownloadOutlined,
-    LinkOutlined, PictureOutlined, ArrowLeftOutlined, ThunderboltOutlined,
+    SaveOutlined, ArrowLeftOutlined, ThunderboltOutlined,
     EyeOutlined, FormOutlined, ReloadOutlined, PlusOutlined, UserOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import './ResumeDetail.css';
+import ResumeExportModal from '../../components/ResumeExportModal';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -55,13 +55,8 @@ const ResumeDetail: React.FC = () => {
     const [selectedTemplate, setSelectedTemplate] = useState('modern');
     const [activeTab, setActiveTab] = useState('preview');
 
-    // 邮件发送
-    const [emailModalVisible, setEmailModalVisible] = useState(false);
-    const [emailAddress, setEmailAddress] = useState('');
-    const [sendingEmail, setSendingEmail] = useState(false);
-
-    // 导出中
-    const [exporting, setExporting] = useState(false);
+    // 导出 Modal
+    const [exportModalVisible, setExportModalVisible] = useState(false);
 
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -129,92 +124,8 @@ const ResumeDetail: React.FC = () => {
         }
     };
 
-    // 导出 PDF
-    const handleExportPDF = async () => {
-        setExporting(true);
-        try {
-            const response = await axios.post(
-                `${baseUrl}/resume-generator/export`,
-                {
-                    resume_id: resumeId,
-                    format: 'pdf',
-                    template: selectedTemplate
-                },
-                { responseType: 'blob' }
-            );
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${resume?.filename || '简历'}.pdf`;
-            link.click();
-            window.URL.revokeObjectURL(url);
 
-            message.success('PDF 导出成功');
-        } catch (error) {
-            message.error('PDF 导出失败');
-        } finally {
-            setExporting(false);
-        }
-    };
-
-    // 发送邮件
-    const handleSendEmail = async () => {
-        if (!emailAddress) {
-            message.warning('请输入邮箱地址');
-            return;
-        }
-
-        setSendingEmail(true);
-        try {
-            await axios.post(`${baseUrl}/resume-generator/send-email`, {
-                resume_id: resumeId,
-                email: emailAddress,
-                template: selectedTemplate
-            });
-            message.success('邮件发送成功');
-            setEmailModalVisible(false);
-            setEmailAddress('');
-        } catch (error) {
-            message.error('邮件发送失败');
-        } finally {
-            setSendingEmail(false);
-        }
-    };
-
-    // 生成分享链接
-    const handleGenerateLink = async () => {
-        message.info('分享链接功能开发中...');
-    };
-
-    // 生成长图
-    const handleGenerateImage = async () => {
-        setExporting(true);
-        try {
-            const response = await axios.post(
-                `${baseUrl}/resume-generator/export`,
-                {
-                    resume_id: resumeId,
-                    format: 'png',
-                    template: selectedTemplate
-                },
-                { responseType: 'blob' }
-            );
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${resume?.filename || '简历'}.png`;
-            link.click();
-            window.URL.revokeObjectURL(url);
-
-            message.success('长图生成成功');
-        } catch (error) {
-            message.error('长图生成失败');
-        } finally {
-            setExporting(false);
-        }
-    };
 
     // 更新字段
     const updateField = (path: string[], value: any) => {
@@ -932,38 +843,13 @@ const ResumeDetail: React.FC = () => {
                         <Space direction="vertical" style={{ width: '100%' }} size="middle">
                             <Button
                                 type="primary"
-                                icon={<DownloadOutlined />}
+                                icon={<ThunderboltOutlined />}
                                 block
                                 size="large"
-                                onClick={handleExportPDF}
-                                loading={exporting}
+                                onClick={() => setExportModalVisible(true)}
+                                style={{ height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}
                             >
-                                导出 PDF
-                            </Button>
-                            <Button
-                                icon={<MailOutlined />}
-                                block
-                                size="large"
-                                onClick={() => setEmailModalVisible(true)}
-                            >
-                                邮件发送
-                            </Button>
-                            <Button
-                                icon={<LinkOutlined />}
-                                block
-                                size="large"
-                                onClick={handleGenerateLink}
-                            >
-                                生成分享链接
-                            </Button>
-                            <Button
-                                icon={<PictureOutlined />}
-                                block
-                                size="large"
-                                onClick={handleGenerateImage}
-                                loading={exporting}
-                            >
-                                生成长图
+                                📦 导出与分发
                             </Button>
                         </Space>
                     </Card>
@@ -982,40 +868,16 @@ const ResumeDetail: React.FC = () => {
                 </Col>
             </Row>
 
-            {/* 邮件发送弹窗 */}
-            <Modal
-                title={<><MailOutlined /> 发送简历至邮箱</>}
-                open={emailModalVisible}
-                onCancel={() => setEmailModalVisible(false)}
-                footer={[
-                    <Button key="cancel" onClick={() => setEmailModalVisible(false)}>
-                        取消
-                    </Button>,
-                    <Button
-                        key="send"
-                        type="primary"
-                        onClick={handleSendEmail}
-                        loading={sendingEmail}
-                    >
-                        发送
-                    </Button>
-                ]}
-                centered
-            >
-                <div style={{ marginTop: 20 }}>
-                    <Text>请输入收件人邮箱地址：</Text>
-                    <Input
-                        value={emailAddress}
-                        onChange={(e) => setEmailAddress(e.target.value)}
-                        placeholder="example@email.com"
-                        style={{ marginTop: 12 }}
-                        size="large"
-                    />
-                    <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
-                        将使用当前选择的模板（{templates.find(t => t.id === selectedTemplate)?.name}）生成 PDF 并发送
-                    </Text>
-                </div>
-            </Modal>
+            {/* 导出与展示 Modal */}
+            {resume && (
+                <ResumeExportModal
+                    visible={exportModalVisible}
+                    onCancel={() => setExportModalVisible(false)}
+                    resumeContent={editedData}
+                    resumeId={resumeId || ''}
+                    jobId={resume.target_job_title || ''}
+                />
+            )}
         </div>
     );
 };

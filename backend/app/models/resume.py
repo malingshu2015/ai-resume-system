@@ -28,5 +28,9 @@ class Resume(Base):
     optimization_notes = Column(String, nullable=True)  # 优化说明/特点概述
     avatar_url = Column(String, nullable=True)  # 应聘者头像 URL
     
+    # 分享功能
+    share_token = Column(String, unique=True, index=True, nullable=True)
+    share_expires_at = Column(DateTime, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

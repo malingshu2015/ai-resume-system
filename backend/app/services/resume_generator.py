@@ -6,7 +6,9 @@ import logging
 from typing import Dict, Optional, List
 from datetime import datetime
 import json
+import asyncio
 from pathlib import Path
+from playwright.async_api import async_playwright
 
 from app.services.ai_service import ai_service
 from app.db.session import SessionLocal
@@ -41,7 +43,7 @@ class ResumeGenerator:
     }
     
     # 支持的导出格式
-    EXPORT_FORMATS = ["pdf", "docx", "markdown", "html", "json"]
+    EXPORT_FORMATS = ["pdf", "docx", "markdown", "html", "json", "png"]
     
     async def generate_optimized_resume(
         self,
@@ -117,7 +119,7 @@ class ResumeGenerator:
         suggestions_context = f"重点应用以下改写建议：{json.dumps(suggestions, ensure_ascii=False)}" if suggestions else "执行全方位的深度内容增强"
         
         prompt = f"""
-你是一位拥有15年经验的明星猎头和职业发展专家。请基于以下原始简历数据，为用户生成一份【深度优化】的简历。
+你是一位拥有15年经验的顶级职业顾问和 UI 视觉专家。请基于以下原始数据，为用户生成一份【极具视觉吸引力】且【内容深度优化】的简历。
 
 【原始简历数据】:
 {json.dumps(original_data, ensure_ascii=False, indent=2)}
@@ -128,50 +130,43 @@ class ResumeGenerator:
 【改写建议】:
 {suggestions_context}
 
-【优化核心指令】:
-1. **内容吞噬与应用**：如果提供了具体的【改写建议】，请务必将其内容【无缝嵌入】到对应的项目或经历中，不要只是简单罗列。
-2. **内容丰满化**：如果原简历描述过于简单（如“负责XX系统开发”），请基于职业常识和技术背景，将其扩展为包含“背景、具体行动、技术选型、量化结果”的深度描述。
-3. **STAR法则应用**：所有工作经历和项目必须体现：情境(Situation)、任务(Task)、行动(Action)、结果(Result)。
-4. **量化价值**：必须包含具体的百分比、金额、时间、规模等数据（如“提升效率30%”，“管理10人团队”，“处理千万级并发”）。
-5. **亮点挖掘**：从平凡的工作中挖掘出不平凡的技术挑战或业务价值点。
-6. **⚠️ 项目完整性（重要）**：必须保留原简历中的所有项目经验，不能删减、合并或省略！原简历有几个项目，输出就必须有几个项目。每个项目都要深度优化，actions 数组至少3-5条，results 必须量化。
+【⚠️ 绝对禁令与强制要求】:
+1. **项目完整性 (CRITICAL)**：原简历中的“项目经验”或“核心项目”必须全量保留，绝对不允许因为篇幅原因将其合并到工作经历中！
+2. **可视化逻辑**：在 description 和 actions 中，确保包含可以被视觉化的关键词。
+3. **STAR 法则全覆盖**：项目经验必须严格遵循：背景/挑战、我的行动、量化结果。
+4. **内容分层**：将通用的、琐碎的工作描述删除，替换为具有行业深度和技术挑战的描述。
 
-请返回以下结构的 JSON 对象：
+请返回以下结构的 JSON 对象，确保 project_experience 数组内容充实：
 {{
     "personal_info": {{
         "name": "姓名",
+        "avatar_url": "{original_data.get('personal_info', {}).get('avatar_url', '')}",
         "title": "符合目标的专业职能头衔",
-        "summary": "极具吸引力的职业概况，包含核心卖点和独特价值",
-        "labels": ["高并发专家", "架构设计", "降本增效"],
-        "contact": {{ "email": "...", "phone": "...", "location": "..." }},
-        "links": []
+        "summary": "深度的职业画像（2-3句核心竞争力总结）",
+        "labels": ["关键词1", "关键词2"],
+        "contact": {{ "email": "...", "phone": "...", "location": "..." }}
     }},
     "work_experience": [
         {{
             "company": "...",
             "position": "...",
             "duration": "...",
-            "description": "一段总结性的职责描述",
-            "achievements": [
-                "高度量化的具体成就1 (例如：主导XX系统重构，将响应延迟从200ms降低至50ms，支撑活跃用户翻倍)",
-                "技术深度展示2 (例如：通过实现XX算法，解决了由于数据倾斜导致的频繁OOM问题，系统稳定性提升至99.99%)"
-            ],
-            "skills_used": ["技术A", "技术B"]
+            "description": "职责概况",
+            "achievements": ["高价值成就1", "高价值成就2"]
         }}
     ],
     "project_experience": [
         {{
-            "name": "...",
-            "role": "...",
-            "duration": "...",
-            "description": "项目背景和挑战",
-            "actions": ["采取的行动1", "采取的行动2"],
-            "results": "项目的最终量化成果"
+            "name": "项目名称",
+            "role": "我的角色",
+            "duration": "起止时间",
+            "description": "项目面临的挑战与技术难度",
+            "actions": ["我采取的关键技术方案1", "关键方案2"],
+            "results": "最终实现的量化业务价值/技术指标"
         }}
     ],
     "skills_sections": [
-        {{ "category": "硬核技术", "skills": ["Java", "Spring Cloud"] }},
-        {{ "category": "工具/架构", "skills": ["Kubernetes", "Redis"] }}
+        {{ "category": "技术领域", "skills": ["实打实的技能"] }}
     ],
     "education": [],
     "certifications": []
@@ -183,7 +178,7 @@ class ResumeGenerator:
 
     def _generate_html_content(self, content: Dict, template_info: Dict) -> str:
         """
-        生成极具视觉美感的现代 HTML 模板 (内联 CSS，并解决中文字体问题)
+        生成极具视觉美感的现代 HTML 模板 (卡片化流式布局)
         """
         personal = content.get("personal_info", {})
         work_exp = content.get("work_experience", [])
@@ -193,10 +188,10 @@ class ResumeGenerator:
         
         color = template_info.get("color_scheme", "blue")
         theme_colors = {
-            "blue": "#1890ff",
-            "navy": "#001529",
-            "purple": "#722ed1",
-            "gray": "#262626"
+            "blue": "#1d4ed8",
+            "gold": "#b45309",
+            "purple": "#7e22ce",
+            "black": "#0f172a"
         }
         primary_color = theme_colors.get(color, theme_colors["blue"])
 
@@ -206,83 +201,159 @@ class ResumeGenerator:
     <meta charset="UTF-8">
     <style>
         @page {{ size: a4; margin: 0; }}
-        :root {{ --primary: {primary_color}; }}
-        body {{ font-family: 'PingFang SC', 'STHeiti', 'SimSun', sans-serif; background: #fff; padding: 0; margin: 0; color: #333; }}
-        .resume-card {{ background: #fff; width: 100%; min-height: 297mm; margin: 0; }}
+        :root {{ 
+            --primary: {primary_color};
+            --bg-gray: #f8fafc;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }}
+        body {{ 
+            font-family: 'PingFang SC', 'HarmonyOS Sans', 'Microsoft YaHei', sans-serif; 
+            background: var(--bg-gray); 
+            padding: 0; margin: 0; color: var(--text-dark); 
+            line-height: 1.5;
+        }}
         
-        .header {{ background: {primary_color}; color: white; padding: 40px; }}
-        .header h1 {{ margin: 0; font-size: 28px; }}
-        .header .title-badge {{ display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 4px; margin-top: 10px; font-size: 14px; }}
-        .header .summary {{ margin-top: 15px; font-size: 13px; line-height: 1.6; opacity: 0.9; }}
-        .contact-bar {{ display: flex; gap: 15px; margin-top: 20px; font-size: 12px; opacity: 0.8; }}
+        /* 顶部 Banner */
+        .resume-header {{ 
+            background: linear-gradient(135deg, {primary_color} 0%, {primary_color}ee 100%);
+            color: white; 
+            padding: 50px 40px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 5px solid rgba(255,255,255,0.1);
+        }}
         
-        .main-content {{ display: flex; padding: 30px; }}
-        .left-col {{ width: 65%; padding-right: 30px; }}
-        .right-col {{ width: 35%; border-left: 1px solid #eee; padding-left: 30px; }}
+        .header-main {{ flex: 1; }}
+        .header-avatar {{
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            border: 4px solid rgba(255,255,255,0.2);
+            background: white;
+            overflow: hidden;
+            margin-left: 40px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }}
+        .header-avatar img {{ width: 100%; height: 100%; object-fit: cover; }}
         
-        .section-title {{ font-size: 16px; font-weight: bold; color: {primary_color}; border-bottom: 2px solid {primary_color}; padding-bottom: 5px; margin: 25px 0 15px 0; }}
+        .name-row {{ font-size: 34px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; }}
+        .title-row {{ font-size: 18px; opacity: 0.95; font-weight: 500; margin-bottom: 12px; }}
+        .label-group {{ display: flex; gap: 8px; margin-bottom: 18px; }}
+        .label-pill {{ background: rgba(255,255,255,0.15); padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; }}
         
-        .exp-item {{ margin-bottom: 20px; }}
-        .exp-header {{ display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }}
-        .exp-meta {{ font-size: 13px; color: {primary_color}; margin: 5px 0; }}
-        .achievement-list {{ padding-left: 15px; margin: 5px 0; }}
-        .achievement-list li {{ font-size: 13px; color: #444; margin-bottom: 5px; }}
+        .contact-info {{ display: flex; gap: 20px; font-size: 13px; opacity: 0.85; }}
         
-        .skill-group { margin-bottom: 12px; }
-        .skill-category { 
-            font-size: 11px; 
-            font-weight: 600; 
-            color: #666; 
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .skill-tags { font-size: 11px; line-height: 1.6; }
-        .skill-tag { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 3px 8px; 
-            border-radius: 12px; 
-            margin-right: 4px; 
-            margin-bottom: 4px;
-            display: inline-block;
-            font-weight: 500;
-        }
+        .container {{ max-width: 960px; margin: -25px auto 40px; padding: 0 20px; }}
         
-        .label-tag { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-right: 5px; }
+        /* 模块卡片化 */
+        .section-card {{ 
+            background: #fff; 
+            border-radius: 16px; 
+            padding: 24px; 
+            margin-bottom: 20px; 
+            box-shadow: var(--card-shadow);
+        }}
+        
+        .section-title-box {{ 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f1f5f9;
+        }}
+        .section-icon {{ font-size: 18px; }}
+        .section-title {{ font-size: 17px; font-weight: 700; color: var(--text-dark); }}
+        
+        /* 经历项列表 */
+        .item-row {{ margin-bottom: 24px; position: relative; padding-left: 18px; border-left: 2px solid #f1f5f9; }}
+        .item-row::after {{ 
+            content: ''; position: absolute; left: -5px; top: 6px; width: 8px; height: 8px; 
+            background: #fff; border: 2px solid var(--primary); border-radius: 50%;
+        }}
+        
+        .item-head {{ display: flex; justify-content: space-between; font-weight: 700; font-size: 14.5px; margin-bottom: 4px; }}
+        .item-meta {{ font-size: 13.5px; color: var(--primary); font-weight: 600; margin-bottom: 10px; }}
+        
+        .bullet-list {{ margin: 0; padding: 0; list-style: none; }}
+        .bullet-item {{ position: relative; padding-left: 15px; font-size: 13.5px; color: #444; margin-bottom: 6px; line-height: 1.6; }}
+        .bullet-item::before {{ content: '•'; position: absolute; left: 0; color: var(--primary); font-weight: 800; }}
+        
+        /* 项目特别样式 */
+        .project-block {{ background: #fbfcfe; padding: 16px; border-radius: 12px; border: 1px solid #edf2f7; margin-bottom: 15px; }}
+        .project-result {{ margin-top: 10px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; font-size: 12.5px; color: #166534; font-weight: 500; }}
+        
+        /* 技能云 */
+        .skill-group {{ margin-bottom: 12px; }}
+        .skill-cat {{ font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }}
+        .skill-pills {{ display: flex; flex-wrap: wrap; gap: 6px; }}
+        .skill-pill {{ background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 500; border: 1px solid #e2e8f0; }}
+
+        .summary-box {{ background: #fff; padding: 24px; border-radius: 16px; margin-bottom: 20px; font-style: italic; font-size: 14.5px; line-height: 1.7; color: #4b5563; border-left: 4px solid var(--primary); }}
     </style>
 </head>
 <body>
     <div class="resume-card">
-        <div class="header">
-            <h1>{personal.get('name', '姓名')}</h1>
-            <div class="title-badge">{personal.get('title', '技术专家')}</div>
-            <div style="margin-top: 10px;">
-                {" ".join([f'<span class="label-tag">{L}</span>' for L in personal.get('labels', [])])}
+        <div class="resume-header">
+            <div class="header-main">
+                <div class="name-row">{personal.get('name', '姓名')}</div>
+                <div class="title-row">{personal.get('title', '专业头衔')}</div>
+                <div class="label-group">
+                    {" ".join([f'<span class="label-pill">{L}</span>' for L in personal.get('labels', [])])}
+                </div>
+                <div class="contact-info">
+                    <span>✉️ {personal.get('contact', {}).get('email', '-')}</span>
+                    <span>📱 {personal.get('contact', {}).get('phone', '-')}</span>
+                    <span>📍 {personal.get('contact', {}).get('location', '-')}</span>
+                </div>
             </div>
-            <div class="summary">{personal.get('summary', '')}</div>
-            <div class="contact-bar">
-                <span>📍 {personal.get('contact', {}).get('location', '城市')}</span>
-                <span>📞 {personal.get('contact', {}).get('phone', '电话')}</span>
-                <span>✉️ {personal.get('contact', {}).get('email', '邮箱')}</span>
+            <div class="header-avatar">
+                <img src="{personal.get('avatar_url') or 'https://ui-avatars.com/api/?name=' + personal.get('name', 'User') + '&background=random'}" alt="avatar">
             </div>
         </div>
         
-        <div class="main-content">
-            <div class="left-col">
-                <div class="section-title" style="margin-top: 0;">工作详细履历</div>
-                {self._render_work_exp_html(work_exp)}
+        <div class="container">
+            <div class="summary-box">“{personal.get('summary', '')}”</div>
+
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 2.5;">
+                    <div class="section-card">
+                        <div class="section-title-box">
+                            <span class="section-icon">💼</span>
+                            <span class="section-title">核心工作详细履历</span>
+                        </div>
+                        {self._render_work_exp_html(work_exp)}
+                    </div>
+
+                    <div class="section-card">
+                        <div class="section-title-box">
+                            <span class="section-icon">🚀</span>
+                            <span class="section-title">核心项目深度解析</span>
+                        </div>
+                        {self._render_projects_html(projects)}
+                    </div>
+                </div>
                 
-                <div class="section-title">核心项目经验</div>
-                {self._render_projects_html(projects)}
-            </div>
-            
-            <div class="right-col">
-                <div class="section-title" style="margin-top: 0;">核心技能</div>
-                {self._render_skills_html(skills_sections)}
-                
-                <div class="section-title">教育背景</div>
-                {self._render_edu_html(education)}
+                <div style="flex: 1;">
+                    <div class="section-card">
+                        <div class="section-title-box">
+                            <span class="section-icon">🛠️</span>
+                            <span class="section-title">专业技能栈</span>
+                        </div>
+                        {self._render_skills_html(skills_sections)}
+                    </div>
+
+                    <div class="section-card">
+                        <div class="section-title-box">
+                            <span class="section-icon">🎓</span>
+                            <span class="section-title">教育背景</span>
+                        </div>
+                        {self._render_edu_html(education)}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -294,16 +365,15 @@ class ResumeGenerator:
     def _render_work_exp_html(self, exps):
         html = ""
         for exp in exps:
-            achievements = "".join([f"<li>{a}</li>" for a in exp.get("achievements", [])])
+            achievements = "".join([f'<li class="bullet-item">{a}</li>' for a in exp.get("achievements", [])])
             html += f"""
-            <div class="exp-item">
-                <div class="exp-header">
-                    <span style="float: left;">{exp.get('company')}</span>
-                    <span style="float: right;">{exp.get('duration')}</span>
-                    <div style="clear: both;"></div>
+            <div class="item-row">
+                <div class="item-head">
+                    <span>{exp.get('company')}</span>
+                    <span style="color: var(--text-muted); font-weight: 500;">{exp.get('duration')}</span>
                 </div>
-                <div class="exp-meta">{exp.get('position')}</div>
-                <ul class="achievement-list">{achievements}</ul>
+                <div class="item-meta">{exp.get('position')}</div>
+                <ul class="bullet-list">{achievements}</ul>
             </div>
             """
         return html
@@ -311,15 +381,22 @@ class ResumeGenerator:
     def _render_projects_html(self, projects):
         html = ""
         for p in projects:
+            if not p: continue
+            actions = "".join([f'<li class="bullet-item">{a}</li>' for a in p.get("actions", [])])
             html += f"""
-            <div class="exp-item">
-                <div class="exp-header">
-                    <span style="float: left;">{p.get('name')}</span>
-                    <span style="float: right;">{p.get('duration')}</span>
-                    <div style="clear: both;"></div>
+            <div class="project-block">
+                <div class="item-head">
+                    <span>{p.get('name')}</span>
+                    <span style="color: var(--text-muted); font-weight: 500; font-size: 12px;">{p.get('duration')}</span>
                 </div>
-                <div class="exp-meta">{p.get('role')}</div>
-                <div style="font-size: 12px; color: #666; margin-top: 5px;"><strong>产出：</strong>{p.get('results', '')}</div>
+                <div class="item-meta" style="margin-bottom: 8px;">{p.get('role')}</div>
+                <div style="font-size: 13px; color: #475569; margin-bottom: 10px; font-weight: 500;">{p.get('description', '')}</div>
+                <ul class="bullet-list">
+                    {actions}
+                </ul>
+                <div class="project-result">
+                    <strong>成果显著：</strong>{p.get('results', '')}
+                </div>
             </div>
             """
         return html
@@ -327,11 +404,11 @@ class ResumeGenerator:
     def _render_skills_html(self, sections):
         html = ""
         for s in sections:
-            tags = "".join([f'<span class="skill-tag">{tag}</span>' for tag in s.get("skills", [])])
+            pills = "".join([f'<span class="skill-pill">{tag}</span>' for tag in s.get("skills", [])])
             html += f"""
             <div class="skill-group">
-                <div class="skill-category">{s.get('category')}</div>
-                <div class="skill-tags">{tags}</div>
+                <div class="skill-cat">{s.get('category')}</div>
+                <div class="skill-pills">{pills}</div>
             </div>
             """
         return html
@@ -347,14 +424,14 @@ class ResumeGenerator:
             </div>
             """
         return html
-    def export_resume(
+    async def export_resume(
         self,
         resume_data: Dict,
         format: str = "pdf",
         output_path: Optional[str] = None
     ) -> str:
         """
-        导出简历到指定格式
+        导出简历到指定格式 (异步支持)
         """
         if format not in self.EXPORT_FORMATS:
             raise ValueError(f"不支持的格式: {format}")
@@ -377,7 +454,9 @@ class ResumeGenerator:
         elif format == "docx":
             return self._export_docx(resume_data, output_path)
         elif format == "pdf":
-            return self._export_pdf(resume_data, output_path)
+            return await self._export_pdf_advanced(resume_data, output_path)
+        elif format == "png":
+            return await self._export_image_advanced(resume_data, output_path)
         
         raise ValueError(f"格式 {format} 的导出功能尚未实现")
 
@@ -553,26 +632,63 @@ class ResumeGenerator:
             logging.error("python-docx 未安装，无法导出Word格式")
             raise ValueError("Word导出功能需要安装 python-docx 库")
     
-    def _export_pdf(self, resume_data: Dict, output_path: str) -> str:
-        """导出为PDF格式"""
-        from xhtml2pdf import pisa
-        
+    async def _export_pdf_advanced(self, resume_data: Dict, output_path: str) -> str:
+        """
+        使用 Playwright 生成高品质 PDF
+        """
         content = resume_data.get("content", {})
         template = resume_data.get("template", "modern")
         template_info = self.TEMPLATES.get(template, self.TEMPLATES["modern"])
         
         html_content = self._generate_html_content(content, template_info)
         
-        with open(output_path, "w+b") as result_file:
-            # pisa 能够处理中文字体，但需要 html 中指定兼容字体
-            pisa_status = pisa.CreatePDF(html_content, dest=result_file)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
             
-        if pisa_status.err:
-            logging.error(f"PDF生成失败: {pisa_status.err}")
-            # 如果失败，作为备选生成 HTML
-            html_path = output_path.replace('.pdf', '.html')
-            self._export_html(resume_data, html_path)
-            return html_path
+            # 设置 HTML 内容
+            await page.set_content(html_content)
+            # 等待网络空闲（如果有外部图片）
+            await page.wait_for_load_state("networkidle")
+            
+            # 生成 PDF
+            await page.pdf(
+                path=output_path,
+                format="A4",
+                print_background=True,
+                margin={"top": "0mm", "right": "0mm", "bottom": "0mm", "left": "0mm"}
+            )
+            
+            await browser.close()
+            
+        return output_path
+
+    async def _export_image_advanced(self, resume_data: Dict, output_path: str) -> str:
+        """
+        使用 Playwright 生成高清全景长图
+        """
+        content = resume_data.get("content", {})
+        template = resume_data.get("template", "modern")
+        template_info = self.TEMPLATES.get(template, self.TEMPLATES["modern"])
+        
+        html_content = self._generate_html_content(content, template_info)
+        
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            # 设置较大的视口宽度，保持简历比例
+            page = await browser.new_page(viewport={"width": 1000, "height": 1400}, device_scale_factor=2)
+            
+            await page.set_content(html_content)
+            await page.wait_for_load_state("networkidle")
+            
+            # 获取页面真实高度
+            height = await page.evaluate("document.body.scrollHeight")
+            await page.set_viewport_size({"width": 1000, "height": height})
+            
+            # 截图
+            await page.screenshot(path=output_path, full_page=True)
+            
+            await browser.close()
             
         return output_path
     

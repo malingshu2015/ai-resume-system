@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import {
     Button, Card, Space, Tag, Modal, Typography, message,
-    Divider, Badge, Empty, Row, Col, Tooltip, Spin, Input, Tabs
+    Divider, Badge, Empty, Row, Col, Tooltip, Spin, Input, Tabs, Upload, Form
 } from 'antd'
 import {
     PlusOutlined, EyeOutlined, DeleteOutlined, SyncOutlined,
     AimOutlined, EnvironmentOutlined, DollarOutlined, CalendarOutlined,
     SearchOutlined, ThunderboltOutlined, FileTextOutlined,
     EditOutlined, GlobalOutlined, ScissorOutlined, RocketOutlined,
-    ArrowRightOutlined
+    ArrowRightOutlined, UploadOutlined, FilePdfOutlined, FileWordOutlined,
+    InboxOutlined
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -16,6 +17,7 @@ import './JobList.css'
 
 const { Title, Text, Paragraph } = Typography
 const { TextArea } = Input
+const { Dragger } = Upload
 
 interface Job {
     id: string
@@ -34,6 +36,9 @@ const JobList: React.FC = () => {
     const [currentJob, setCurrentJob] = useState<Job | null>(null)
     const [searchText, setSearchText] = useState('')
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [createForm] = Form.useForm()
+    const [analyzingDoc, setAnalyzingDoc] = useState(false)
+    const [activeTab, setActiveTab] = useState('1')
 
     const navigate = useNavigate()
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
@@ -229,39 +234,96 @@ const JobList: React.FC = () => {
                 centered
                 destroyOnClose
             >
-                <Tabs defaultActiveKey="1" className="apple-tabs">
+                <Tabs activeKey={activeTab} onChange={setActiveTab} className="apple-tabs">
                     <Tabs.TabPane tab={<span><EditOutlined /> 直接输入</span>} key="1">
                         <div style={{ padding: '20px 0' }}>
-                            <Input placeholder="公司名称" size="large" style={{ marginBottom: 16 }} id="new_job_company" />
-                            <Input placeholder="职位名称" size="large" style={{ marginBottom: 16 }} id="new_job_title" />
-                            <TextArea placeholder="粘贴 JD (职位描述) 正文..." rows={10} style={{ borderRadius: 12 }} id="new_job_desc" />
-                            <Button
-                                type="primary"
-                                block
-                                size="large"
-                                style={{ marginTop: 24, height: 48, borderRadius: 12 }}
-                                onClick={async () => {
-                                    const company = (document.getElementById('new_job_company') as HTMLInputElement).value
-                                    const title = (document.getElementById('new_job_title') as HTMLInputElement).value
-                                    const description = (document.getElementById('new_job_desc') as HTMLTextAreaElement).value
-                                    if (!company || !title || !description) return message.warning('请填写完整信息')
-                                    try {
-                                        await axios.post(`${baseUrl}/jobs/`, { company, title, description })
-                                        message.success('录入成功')
-                                        setIsCreateModalOpen(false)
-                                        fetchJobs()
-                                    } catch { message.error('录入失败') }
-                                }}
-                            >
-                                提交并智能解析
-                            </Button>
+                            <Form form={createForm} layout="vertical" onFinish={async (values) => {
+                                try {
+                                    await axios.post(`${baseUrl}/jobs/`, values)
+                                    message.success('录入成功')
+                                    setIsCreateModalOpen(false)
+                                    createForm.resetFields()
+                                    fetchJobs()
+                                } catch { message.error('录入失败') }
+                            }}>
+                                <Form.Item name="company" rules={[{ required: true, message: '请输入公司名称' }]}>
+                                    <Input placeholder="公司名称" size="large" />
+                                </Form.Item>
+                                <Form.Item name="title" rules={[{ required: true, message: '请输入职位名称' }]}>
+                                    <Input placeholder="职位名称" size="large" />
+                                </Form.Item>
+                                <Form.Item name="description" rules={[{ required: true, message: '请输入职位描述' }]}>
+                                    <TextArea placeholder="粘贴 JD (职位描述) 正文..." rows={10} style={{ borderRadius: 12 }} />
+                                </Form.Item>
+                                <Button
+                                    type="primary"
+                                    block
+                                    size="large"
+                                    htmlType="submit"
+                                    style={{ marginTop: 8, height: 48, borderRadius: 12 }}
+                                >
+                                    提交并智能解析
+                                </Button>
+                            </Form>
+                        </div>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab={<span><FileTextOutlined /> 文档导入</span>} key="3">
+                        <div style={{ padding: '20px 0' }}>
+                            <Spin spinning={analyzingDoc} tip="AI 正在深度解析文件内容...">
+                                <Dragger
+                                    accept=".pdf,.doc,.docx"
+                                    showUploadList={false}
+                                    beforeUpload={async (file) => {
+                                        const isLt10M = file.size / 1024 / 1024 < 10;
+                                        if (!isLt10M) {
+                                            message.error('文件大小不能超过 10MB');
+                                            return false;
+                                        }
+
+                                        setAnalyzingDoc(true);
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+
+                                        try {
+                                            const res = await axios.post(`${baseUrl}/jobs/analyze-document`, formData, {
+                                                headers: { 'Content-Type': 'multipart/form-data' }
+                                            });
+                                            const { title, company, description } = res.data;
+                                            createForm.setFieldsValue({ title, company, description });
+                                            message.success('解析成功，已自动填充信息');
+                                            setActiveTab('1'); // 跳转到预览页确认
+                                        } catch (err: any) {
+                                            message.error(err.response?.data?.detail || '解析失败，请检查文件格式');
+                                        } finally {
+                                            setAnalyzingDoc(false);
+                                        }
+                                        return false;
+                                    }}
+                                >
+                                    <p className="ant-upload-drag-icon">
+                                        <InboxOutlined style={{ color: 'var(--apple-blue)' }} />
+                                    </p>
+                                    <p className="ant-upload-text">点击或拖拽职位文件到此区域</p>
+                                    <p className="ant-upload-hint">支持 PDF、Word 格式的职位描述文档 (JD)</p>
+                                    <div style={{ marginTop: 16 }}>
+                                        <Space size="large">
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <FilePdfOutlined style={{ color: '#ff4d4f' }} /> PDF
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <FileWordOutlined style={{ color: '#1890ff' }} /> Word
+                                            </span>
+                                        </Space>
+                                    </div>
+                                </Dragger>
+                            </Spin>
                         </div>
                     </Tabs.TabPane>
                     <Tabs.TabPane tab={<span><GlobalOutlined /> 链接采集</span>} key="2">
                         <div style={{ padding: '20px 0', textAlign: 'center' }}>
                             <Text type="secondary">支持 Boss直聘、猎聘、拉勾等主流招聘渠道链接</Text>
                             <Input placeholder="https://..." size="large" style={{ marginTop: 16, marginBottom: 24 }} />
-                            <Button type="primary" block size="large" style={{ height: 48, borderRadius: 12 }}>抓取数据</Button>
+                            <Button type="primary" block size="large" style={{ height: 48, borderRadius: 12 }}>抓取数据并解析</Button>
                         </div>
                     </Tabs.TabPane>
                 </Tabs>

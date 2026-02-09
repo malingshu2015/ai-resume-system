@@ -1,45 +1,193 @@
-/* 简历导出模态框样式 */
-.resume-export-modal .ant-modal-body {
-    padding: 24px;
+/* 简历导出弹窗样式升级 */
+.resume-export-modal.premium-modal .ant-modal-content {
+    border-radius: 20px;
+    padding: 0;
+    overflow: hidden;
 }
 
-.resume-export-modal .ant-tabs-nav {
-    margin-bottom: 24px;
+.modal-title-pulse {
+    width: 10px;
+    height: 10px;
+    background: #007AFF;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 rgba(0, 122, 255, 0.4);
+    animation: titlePulse 2s infinite;
 }
 
-/* 导出格式卡片 */
-.export-format-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 16px;
-    text-align: center;
-    padding: 24px;
-    height: 100%;
-}
-
-.export-format-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
-    border-color: var(--apple-blue) !important;
-}
-
-.export-format-card .ant-space {
-    align-items: center;
-}
-
-/* 简历预览容器 */
-.resume-preview-container {
-    animation: fadeIn 0.4s ease-out;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
+@keyframes titlePulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.7);
     }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(0, 122, 255, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 122, 255, 0);
+    }
+}
+
+.export-distribution-section {
+    padding: 10px 0;
+}
+
+.export-group-card {
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 16px;
+    padding: 24px;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.export-group-card:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.export-group-card.highlight {
+    background: linear-gradient(to bottom, #fcfdff 0%, #ffffff 100%);
+    border: 1px solid #e6f7ff;
+}
+
+.group-title {
+    margin-bottom: 8px !important;
+}
+
+.group-desc {
+    display: block;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: #666;
+}
+
+/* 导出按钮网格 */
+.export-button-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.export-btn {
+    height: 64px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600 !important;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.export-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.export-btn.pdf {
+    background: #007AFF !important;
+    border: none !important;
+}
+
+.btn-icon {
+    font-size: 20px;
+    margin-right: 12px;
+}
+
+.export-button-grid.secondary .export-btn {
+    height: 50px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #475569 !important;
+}
+
+/* 分享链接/邮件项 */
+.action-item {
+    margin-bottom: 20px;
+}
+
+.action-label {
+    margin-bottom: 8px;
+}
+
+/* 预览相关 */
+.preview-control-bar {
+    background: #f8fafc;
+    padding: 16px 24px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.template-selector-group {
+    display: flex;
+    gap: 10px;
+}
+
+.template-chip {
+    padding: 6px 14px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.template-chip:hover {
+    border-color: #007AFF;
+    color: #007AFF;
+}
+
+.template-chip.active {
+    background: #007AFF;
+    color: #fff;
+    border-color: #007AFF;
+}
+
+.html-preview-frame-wrapper {
+    background: #f1f5f9;
+    padding: 40px;
+    border-radius: 12px;
+    min-height: 500px;
+    display: flex;
+    justify-content: center;
+}
+
+.resume-html-iframe {
+    transform-origin: top center;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+}
+
+.preview-skeleton-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.skeleton-pulse {
+    width: 210mm;
+    height: 297mm;
+    background: #e2e8f0;
+    border-radius: 8px;
+    animation: skeletonPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes skeletonPulse {
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+
+    100% {
+        opacity: 0.6;
     }
 }

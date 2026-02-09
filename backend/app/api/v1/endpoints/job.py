@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.models.job import Job
 from app.services.ai_service import ai_service
 from app.services.scraper_service import scraper_service
+from app.services.document_parser import document_parser
 
 router = APIRouter()
 
@@ -35,6 +36,81 @@ async def analyze_screenshot(payload: dict):
         raise HTTPException(status_code=400, detail=result["error"])
     
     return result
+
+@router.post("/analyze-document")
+async def analyze_document(file: UploadFile = File(...)):
+    """
+    解析上传的职位文档（PDF 或 Word）并提取文本信息
+    
+    支持的文件格式：
+    - PDF (.pdf)
+    - Word (.doc, .docx)
+    """
+    # 验证文件类型
+    allowed_extensions = ['.pdf', '.doc', '.docx']
+    file_ext = '.' + file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"不支持的文件类型。请上传 PDF 或 Word 文档（{', '.join(allowed_extensions)}）"
+        )
+    
+    try:
+        # 读取文件内容
+        file_content = await file.read()
+        
+        # 验证文件大小（限制 10MB）
+        max_size = 10 * 1024 * 1024  # 10MB
+        if len(file_content) > max_size:
+            raise HTTPException(status_code=400, detail="文件大小超过限制（最大 10MB）")
+        
+        # 解析文档提取文本
+        extracted_text = await document_parser.parse_document(file_content, file.filename)
+        
+        if not extracted_text:
+            raise HTTPException(
+                status_code=500, 
+                detail="文档解析失败，未能提取到文本内容。请确保文档包含可读文本。"
+            )
+        
+        # 使用 AI 从提取的文本中识别职位信息
+        result = await ai_service.parse_job_description(extracted_text)
+        
+        if not result:
+            # 如果 AI 解析失败，至少返回提取的原始文本
+            return {
+                "title": "从文档提取的职位",
+                "company": "待补充",
+                "description": extracted_text
+            }
+        
+        # 从 AI 解析结果中提取关键信息
+        title = result.get("job_title", "从文档提取的职位")
+        company = result.get("company", "待补充")
+        
+        # 构建完整的职位描述
+        description_parts = [extracted_text]
+        
+        return {
+            "title": title,
+            "company": company,
+            "description": extracted_text,
+            "parsed_data": result  # 附加 AI 解析的结构化数据
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        import logging
+        logging.error(f"文档解析异常: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, 
+            detail=f"文档处理失败: {str(e)}"
+        )
+
 
 async def process_job_parsing(job_id: str, db: Session):
     """后台任务：解析职位 JD (支持从 URL 抓取)"""

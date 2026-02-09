@@ -539,7 +539,129 @@ Authorization: Bearer {access_token}
 
 ---
 
-### 3.5 删除职位
+### 3.5 分析职位截图
+
+**接口**: `POST /jobs/analyze-screenshot`
+
+**请求头**:
+```
+Authorization: Bearer {access_token}
+```
+
+**请求参数**:
+```json
+{
+  "image": "string"  // Base64 编码的图片数据
+}
+```
+
+**功能说明**:
+- 使用 AI 视觉模型分析职位截图
+- 自动提取职位名称、公司名称和职位描述
+- 支持常见图片格式（JPG、PNG）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "title": "高级 Python 后端工程师",
+    "company": "某科技有限公司",
+    "description": "我们正在寻找一位经验丰富的 Python 后端工程师...\n\n岗位职责：\n1. 负责后端服务的设计、开发和维护\n2. 参与系统架构设计和技术选型\n\n任职要求：\n1. 本科及以上学历\n2. 3年以上 Python 开发经验\n3. 熟悉 FastAPI、Django 等框架"
+  }
+}
+```
+
+**错误响应**:
+```json
+{
+  "code": 400,
+  "detail": "当前 AI 模型不支持图片分析（视觉功能），请检查 API 配置或手动粘贴文本。"
+}
+```
+
+---
+
+### 3.6 分析职位文档
+
+**接口**: `POST /jobs/analyze-document`
+
+**请求头**:
+```
+Authorization: Bearer {access_token}
+Content-Type: multipart/form-data
+```
+
+**请求参数**:
+```
+file: File  // 职位文档文件（PDF 或 Word）
+```
+
+**功能说明**:
+- 支持上传 PDF (.pdf) 和 Word (.doc, .docx) 格式的职位文档
+- 自动提取文档中的文本内容
+- 使用 AI 识别职位名称、公司名称和职位描述
+- 文件大小限制：10MB
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "title": "高级 Python 后端工程师",
+    "company": "某科技有限公司",
+    "description": "高级 Python 后端工程师\n\n公司：某科技有限公司\n地点：北京 · 朝阳区\n薪资：25K-40K\n\n职位描述：\n我们正在寻找一位经验丰富的 Python 后端工程师加入我们的团队。\n\n岗位职责：\n1. 负责后端服务的设计、开发和维护\n2. 参与系统架构设计和技术选型\n3. 优化系统性能，提升用户体验\n\n任职要求：\n1. 本科及以上学历，计算机相关专业\n2. 3年以上 Python 开发经验\n3. 熟悉 FastAPI、Django 等 Web 框架\n4. 熟悉 PostgreSQL、Redis 等数据库\n5. 具有良好的代码规范和文档习惯",
+    "parsed_data": {
+      "job_title": "高级 Python 后端工程师",
+      "company": "某科技有限公司",
+      "location": "北京 · 朝阳区",
+      "salary_range": "25K-40K",
+      "requirements": {
+        "education": "本科及以上",
+        "experience_years": "3年以上",
+        "skills": ["Python", "FastAPI", "Django", "PostgreSQL", "Redis"],
+        "certifications": [],
+        "other": ["良好的代码规范", "文档习惯"]
+      },
+      "responsibilities": [
+        "负责后端服务的设计、开发和维护",
+        "参与系统架构设计和技术选型",
+        "优化系统性能，提升用户体验"
+      ],
+      "benefits": [],
+      "keywords": ["Python", "后端", "FastAPI", "Django", "PostgreSQL", "Redis"]
+    }
+  }
+}
+```
+
+**错误响应**:
+```json
+{
+  "code": 400,
+  "detail": "不支持的文件类型。请上传 PDF 或 Word 文档（.pdf, .doc, .docx）"
+}
+```
+
+```json
+{
+  "code": 400,
+  "detail": "文件大小超过限制（最大 10MB）"
+}
+```
+
+```json
+{
+  "code": 500,
+  "detail": "文档解析失败，未能提取到文本内容。请确保文档包含可读文本。"
+}
+```
+
+---
+
+### 3.7 删除职位
 
 **接口**: `DELETE /jobs/{job_id}`
 

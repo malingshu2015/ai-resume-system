@@ -6,9 +6,12 @@ from sqlalchemy.orm import Session
 import os
 
 from app.services.resume_generator import resume_generator
+from app.services.email_service import email_service
 from app.db.session import get_db
 from app.models.resume import Resume
 from app.models.job import Job
+import uuid
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -33,8 +36,23 @@ class GenerateResumeRequest(BaseModel):
 class ExportResumeRequest(BaseModel):
     """导出简历请求"""
     resume_data: Dict
-    format: str = "pdf"  # pdf, docx, markdown, html, json
+    format: str = "pdf"  # pdf, docx, markdown, html, json, png
     filename: Optional[str] = None
+
+
+class SendEmailRequest(BaseModel):
+    """发送邮件请求"""
+    resume_id: str
+    to_email: str
+    format: str = "pdf"
+    subject: Optional[str] = None
+    message: Optional[str] = None
+
+
+class GenerateShareLinkRequest(BaseModel):
+    """生成分享链接请求"""
+    resume_id: str
+    expire_days: int = 7
 
 
 @router.post("/generate")
@@ -148,7 +166,7 @@ async def export_resume(request: ExportResumeRequest):
             request.filename = f"{name}_optimized.{request.format}"
         
         # 导出文件
-        file_path = resume_generator.export_resume(
+        file_path = await resume_generator.export_resume(
             resume_data=request.resume_data,
             format=request.format,
             output_path=f"exports/{request.filename}"
@@ -156,14 +174,18 @@ async def export_resume(request: ExportResumeRequest):
         
         return {
             "success": True,
-            "message": "简历导出成功",
+            "message": f"简历{request.format}导出成功",
             "file_path": file_path,
             "download_url": f"/resume-generator/download/{os.path.basename(file_path)}"
         }
         
     except ValueError as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"导出简历失败: {str(e)}")
 
 
@@ -186,15 +208,36 @@ async def download_resume(filename: str):
         'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'html': 'text/html',
         'md': 'text/markdown',
-        'json': 'application/json'
+        'json': 'application/json',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg'
     }
     
     media_type = media_types.get(ext, 'application/octet-stream')
     
+    # 对于图片格式，使用 attachment 强制下载；其他格式使用 inline 允许预览
+    # NOTE: 使用 RFC 5987 格式编码中文文件名，避免 UnicodeEncodeError
+    from urllib.parse import quote
+    
+    # 生成 ASCII 安全的文件名（用于不支持 RFC 5987 的旧客户端）
+    ascii_filename = filename.encode('ascii', 'ignore').decode('ascii') or f"resume.{ext}"
+    # UTF-8 编码的文件名（遵循 RFC 5987）
+    encoded_filename = quote(filename, safe='')
+    
+    headers = {}
+    if ext in ['png', 'jpg', 'jpeg']:
+        # 使用双重格式：ASCII 回退 + UTF-8 编码的完整文件名
+        headers['Content-Disposition'] = (
+            f"attachment; filename=\"{ascii_filename}\"; "
+            f"filename*=UTF-8''{encoded_filename}"
+        )
+    
     return FileResponse(
         path=file_path,
         media_type=media_type,
-        filename=filename
+        # NOTE: 不传 filename 参数，因为我们已经在 headers 中手动设置了
+        headers=headers
     )
 
 
@@ -261,6 +304,100 @@ async def list_export_formats():
     return {
         "success": True,
         "formats": formats
+    }
+
+
+@router.post("/send-email")
+async def send_resume_via_email(
+    request: SendEmailRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    通过邮件发送简历
+    """
+    resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="简历不存在")
+
+    # 1. 先生成文件
+    filename = f"{resume.filename or 'resume'}.{request.format}"
+    file_path = await resume_generator.export_resume(
+        resume_data={"content": resume.parsed_data, "template": "modern"}, # 默认模板
+        format=request.format,
+        output_path=f"exports/{filename}"
+    )
+
+    # 2. 发送邮件
+    subject = request.subject or f"【AI 智能简历】您的优化简历已送达 - {resume.filename}"
+    body = request.message or f"您好！这是 AI 智能简历为您优化后的简历文件（{request.format}格式），请查收。"
+    
+    success = await email_service.send_resume_email(
+        to_email=request.to_email,
+        subject=subject,
+        content=body,
+        attachments=[file_path]
+    )
+
+    if success:
+        return {"success": True, "message": "邮件已成功发送"}
+    else:
+        raise HTTPException(status_code=500, detail="邮件发送失败，请检查 SMTP 配置")
+
+
+@router.post("/share")
+async def generate_share_link(
+    request: GenerateShareLinkRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    生成分享链接
+    """
+    resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="简历不存在")
+
+    # 生成唯一的分享 token
+    share_token = str(uuid.uuid4())
+    resume.share_token = share_token
+    resume.share_expires_at = datetime.utcnow() + timedelta(days=request.expire_days)
+    
+    db.commit()
+
+    # 这里假设前端分享的基础路径，实际生产应从配置读取
+    base_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    share_url = f"{base_url}/share/{share_token}"
+
+    return {
+        "success": True,
+        "share_url": share_url,
+        "expires_at": resume.share_expires_at
+    }
+
+
+@router.get("/share/{token}")
+async def get_shared_resume(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    通过分享链接获取简历内容
+    """
+    resume = db.query(Resume).filter(
+        Resume.share_token == token,
+        Resume.share_expires_at > datetime.utcnow()
+    ).first()
+
+    if not resume:
+        raise HTTPException(status_code=404, detail="分享链接已失效或不存在")
+
+    return {
+        "success": True,
+        "data": {
+            "content": resume.parsed_data,
+            "filename": resume.filename,
+            "target_job_title": resume.target_job_title,
+            "is_optimized": resume.is_optimized
+        }
     }
 
 

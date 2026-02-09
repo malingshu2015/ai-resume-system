@@ -67,6 +67,25 @@
     background: rgba(255, 255, 255, 0.8);
 }
 
+.document-upload-area {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s;
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.document-upload-area .ant-upload-drag {
+    border-radius: 8px;
+}
+
+.document-upload-area .ant-upload-drag-icon {
+    font-size: 64px;
+    color: #52c41a;
+}
+
+
 .input-guide-side {
     background: transparent;
 }

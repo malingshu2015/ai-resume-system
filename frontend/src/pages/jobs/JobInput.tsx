@@ -9,9 +9,10 @@ import {
     ScissorOutlined,
     RocketOutlined,
     LinkOutlined,
-    FileImageOutlined,
     ArrowLeftOutlined,
-    CopyOutlined
+    CopyOutlined,
+    FileTextOutlined,
+    UploadOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -25,11 +26,64 @@ const JobInput: React.FC = () => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [analyzingImage, setAnalyzingImage] = useState(false);
+    const [analyzingDocument, setAnalyzingDocument] = useState(false);
     const [activeTab, setActiveTab] = useState('manual');
     const [successData, setSuccessData] = useState<any>(null);
 
     const navigate = useNavigate();
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+
+    // 处理文档上传核心逻辑
+    const processDocument = async (file: File) => {
+        setAnalyzingDocument(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await axios.post(`${baseUrl}/jobs/analyze-document`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            const { title, company, description } = response.data;
+            form.setFieldsValue({
+                title,
+                company,
+                description
+            });
+            message.success('文档内容已提取，请检查并完善信息');
+            setActiveTab('manual'); // 分析完跳转到手动修改确认
+        } catch (error: any) {
+            message.error(error.response?.data?.detail || '文档解析失败，请确保文件格式正确且包含职位信息');
+        } finally {
+            setAnalyzingDocument(false);
+        }
+    };
+
+    // 处理文档上传
+    const handleDocumentUpload = (file: File) => {
+        // 验证文件类型
+        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        const allowedExtensions = ['.pdf', '.doc', '.docx'];
+        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+
+        if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+            message.error('仅支持 PDF 和 Word 文档格式');
+            return false;
+        }
+
+        // 验证文件大小（10MB）
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            message.error('文件大小不能超过 10MB');
+            return false;
+        }
+
+        processDocument(file);
+        return false; // 阻止自动上传
+    };
+
 
     // 处理图片分析核心逻辑
     const processImage = async (file: File) => {
@@ -213,6 +267,41 @@ const JobInput: React.FC = () => {
                                             )}
                                         </div>
                                     )
+                                },
+                                {
+                                    key: 'document',
+                                    label: <Space><FileTextOutlined /> 文档上传解析</Space>,
+                                    children: (
+                                        <div className="document-upload-area">
+                                            {analyzingDocument ? (
+                                                <div className="analyzing-state">
+                                                    <Spin size="large" tip="AI 正在解析文档内容..." />
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="input-method-tip">
+                                                        <UploadOutlined /> 上传职位描述文档（PDF 或 Word），AI 将自动提取职位信息。
+                                                    </div>
+                                                    <Dragger
+                                                        beforeUpload={handleDocumentUpload}
+                                                        showUploadList={false}
+                                                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                                        multiple={false}
+                                                    >
+                                                        <p className="ant-upload-drag-icon">
+                                                            <FileTextOutlined />
+                                                        </p>
+                                                        <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+                                                        <p className="ant-upload-hint">
+                                                            支持 PDF、Word 文档格式 (.pdf, .doc, .docx)
+                                                            <br />
+                                                            文件大小限制：10MB
+                                                        </p>
+                                                    </Dragger>
+                                                </>
+                                            )}
+                                        </div>
+                                    )
                                 }
                             ]}
                         />
@@ -229,13 +318,19 @@ const JobInput: React.FC = () => {
                             </Paragraph>
                         </div>
                         <div className="guide-item">
-                            <Text strong>2. 截图粘贴说明</Text>
+                            <Text strong>2. 文档上传说明</Text>
+                            <Paragraph type="secondary">
+                                支持上传 PDF 或 Word 格式的职位描述文档，AI 会自动提取文本并识别职位信息。文件大小限制为 10MB。
+                            </Paragraph>
+                        </div>
+                        <div className="guide-item">
+                            <Text strong>3. 截图粘贴说明</Text>
                             <Paragraph type="secondary">
                                 使用微信、钉钉或系统自带的截屏工具（Command+Shift+4 或 Win+Shift+S）截取后，直接在识图区域按粘贴键即可。
                             </Paragraph>
                         </div>
                         <div className="guide-item">
-                            <Text strong>3. 后台正在解析</Text>
+                            <Text strong>4. 后台正在解析</Text>
                             <Paragraph type="secondary">
                                 提交后系统会进行二次深度解析（提取技能标签、薪资范围等），您可以在资料库中查看进度。
                             </Paragraph>
