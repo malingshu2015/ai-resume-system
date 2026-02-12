@@ -4,6 +4,7 @@ import ResumeList from './pages/resumes/ResumeList'
 import ResumeDetail from './pages/resumes/ResumeDetail'
 import JobList from './pages/jobs/JobList'
 import MatchAnalysis from './pages/match/MatchAnalysis'
+import SmartSourcing from './pages/match/SmartSourcing'
 import ModelSettings from './pages/settings/ModelSettings'
 import MainLayout from './components/MainLayout'
 import Login from './pages/auth/Login'
@@ -21,6 +22,7 @@ function App() {
           <Route path="resume/:resumeId" element={<ResumeDetail />} />
           <Route path="jobs" element={<JobList />} />
           <Route path="match" element={<MatchAnalysis />} />
+          <Route path="sourcing" element={<SmartSourcing />} />
           <Route path="settings" element={<ModelSettings />} />
         </Route>
 

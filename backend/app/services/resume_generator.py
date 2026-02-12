@@ -50,7 +50,8 @@ class ResumeGenerator:
         resume_id: str,
         job_id: Optional[str] = None,
         optimization_suggestions: Optional[Dict] = None,
-        template: str = "modern"
+        template: str = "modern",
+        refined_content: Optional[str] = None
     ) -> Dict:
         """
         基于优化建议和目标职位生成深度优化简历
@@ -81,7 +82,8 @@ class ResumeGenerator:
                 original_data=resume.parsed_data,
                 job_data=job_data,
                 suggestions=optimization_suggestions,
-                template=template
+                template=template,
+                refined_content=refined_content
             )
             
             # 生成纯文本版本供前端预览
@@ -110,15 +112,37 @@ class ResumeGenerator:
         original_data: Dict,
         job_data: Optional[Dict],
         suggestions: Optional[Dict],
-        template: str
+        template: str,
+        refined_content: Optional[str] = None
     ) -> Dict:
         """
         高级 AI 简历内容生成引擎
         """
         target_context = f"目标职位：{json.dumps(job_data, ensure_ascii=False)}" if job_data else "通用职业发展优化"
-        suggestions_context = f"重点应用以下改写建议：{json.dumps(suggestions, ensure_ascii=False)}" if suggestions else "执行全方位的深度内容增强"
         
+        # 如果提供了用户修订版内容，则强制 AI 基于该内容进行结构化封装
+        if refined_content:
+            refinement_instruction = f"""
+【核心指令：结构化用户修订稿】
+用户已经对简历内容进行了手动修订，如下所示。你的任务是将其解析并填入简历的 JSON 结构中。
+**绝对要求**：
+1. 必须完全忠实于用户在【修订版文本】中提供的描述。
+2. 将其拆解为 personal_info, work_experience, project_experience 等模块。
+3. 确保 project_experience 中的每一个项目描述、行动和成果都源自用户的修订稿。
+4. 仅在原稿中完全缺失的关键字段（如联系方式、教育背景）时，才从【原始数据】中补全。
+
+【修订版文本】:
+{refined_content}
+"""
+        else:
+            refinement_instruction = f"""
+【核心指令：深度改写建议应用】
+重点应用以下改写建议：{json.dumps(suggestions, ensure_ascii=False)} 
+执行全方位的深度内容增强，保持简历的真实性与专业度的平衡。
+"""
+
         prompt = f"""
+{refinement_instruction}
 你是一位拥有15年经验的顶级职业顾问和 UI 视觉专家。请基于以下原始数据，为用户生成一份【极具视觉吸引力】且【内容深度优化】的简历。
 
 【原始简历数据】:
@@ -128,13 +152,13 @@ class ResumeGenerator:
 {target_context}
 
 【改写建议】:
-{suggestions_context}
+{json.dumps(suggestions, ensure_ascii=False, indent=2) if suggestions else "无特定建议"}
 
-【⚠️ 绝对禁令与强制要求】:
-1. **项目完整性 (CRITICAL)**：原简历中的“项目经验”或“核心项目”必须全量保留，绝对不允许因为篇幅原因将其合并到工作经历中！
-2. **可视化逻辑**：在 description 和 actions 中，确保包含可以被视觉化的关键词。
-3. **STAR 法则全覆盖**：项目经验必须严格遵循：背景/挑战、我的行动、量化结果。
-4. **内容分层**：将通用的、琐碎的工作描述删除，替换为具有行业深度和技术挑战的描述。
+【⚠️ 简历生成黄金铁律 (STEEL RULES)】:
+1. **内容继承承诺 (CONTENT INHERITANCE)**：原简历中的“项目名称”、“项目描述”和“职责细节”是受保护的资产，**绝对禁止删除、绝对禁止合并、绝对禁止用概括性的套话替换具体的事实信息。**
+2. **润色而非改写 (POLISH, NOT REWRITE)**：你的角色是“抛光师”。如果原本的项目介绍写得已经很清楚，请原封不动地保留。你的优化仅限于：在保留原句的基础上，修正病句、提升话术专业度、或将口语化的描述改写为书面形式。
+3. **新增成就点 (ADDITIONAL VALUE)**：你可以基于 JD 需求，为每个项目“额外增加” 1-2 条量化成果或技术动作点，但原有的点必须作为基石存在。
+4. **格式对齐**：输出的 description 必须包含用户原有的项目背景介绍，actions 必须包含用户原有的全部技术动作，results 必须包含用户原有的全部成果。
 
 请返回以下结构的 JSON 对象，确保 project_experience 数组内容充实：
 {{
@@ -169,7 +193,13 @@ class ResumeGenerator:
         {{ "category": "技术领域", "skills": ["实打实的技能"] }}
     ],
     "education": [],
-    "certifications": []
+    "others": {{
+        "certifications": ["证书1", "证书2"],
+        "awards": ["奖项1", "奖项2"]
+    }}
+}}
+{{
+    "MATCH_WARNING": "请务必检查 project_experience 是否全量继承了原简历，严禁丢弃任何技术细节！"
 }}
 """
         # 使用更大的 AI 限制或更专业的模型
@@ -185,6 +215,9 @@ class ResumeGenerator:
         projects = content.get("project_experience", [])
         skills_sections = content.get("skills_sections", [])
         education = content.get("education", [])
+        others = content.get("others", {})
+        certifications = others.get("certifications", [])
+        awards = others.get("awards", [])
         
         color = template_info.get("color_scheme", "blue")
         theme_colors = {
@@ -353,6 +386,16 @@ class ResumeGenerator:
                         </div>
                         {self._render_edu_html(education)}
                     </div>
+
+                    {(certifications or awards) and f'''
+                    <div class="section-card">
+                        <div class="section-title-box">
+                            <span class="section-icon">🏅</span>
+                            <span class="section-title">荣誉认证</span>
+                        </div>
+                        {self._render_others_html(certifications, awards)}
+                    </div>
+                    '''}
                 </div>
             </div>
         </div>
@@ -373,6 +416,7 @@ class ResumeGenerator:
                     <span style="color: var(--text-muted); font-weight: 500;">{exp.get('duration')}</span>
                 </div>
                 <div class="item-meta">{exp.get('position')}</div>
+                {f'<div style="font-size: 13px; color: #475569; margin-bottom: 8px;">{exp.get("description")}</div>' if exp.get("description") else ""}
                 <ul class="bullet-list">{achievements}</ul>
             </div>
             """
@@ -417,12 +461,24 @@ class ResumeGenerator:
         html = ""
         for edu in edu_list:
             html += f"""
-            <div class="exp-item">
-                <div style="font-weight: bold; font-size: 13px;">{edu.get('school')}</div>
-                <div style="font-size: 12px; color: #666;">{edu.get('degree')} · {edu.get('major')}</div>
-                <div style="font-size: 11px; color: #999;">{edu.get('duration')}</div>
+            <div style="margin-bottom: 12px;">
+                <div style="font-weight: bold; font-size: 13.5px; color: var(--text-dark);">{edu.get('school')}</div>
+                <div style="font-size: 12.5px; color: var(--primary); font-weight: 500;">{edu.get('degree')} · {edu.get('major')}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">{edu.get('duration')}</div>
             </div>
             """
+        return html
+
+    def _render_others_html(self, certifications, awards):
+        html = ""
+        if certifications:
+            html += '<div class="skill-cat">资质证书</div><div class="skill-pills" style="margin-bottom: 15px;">'
+            html += "".join([f'<span class="skill-pill" style="background:#fff7ed; color:#c2410c; border-color:#ffedd5;">{c}</span>' for c in certifications])
+            html += '</div>'
+        if awards:
+            html += '<div class="skill-cat">核心荣誉</div><div class="skill-pills">'
+            html += "".join([f'<span class="skill-pill" style="background:#fefce8; color:#a16207; border-color:#fef9c3;">{a}</span>' for a in awards])
+            html += '</div>'
         return html
     async def export_resume(
         self,
@@ -791,24 +847,25 @@ class ResumeGenerator:
                     lines.append(f"  {duration}")
             lines.append("")
         
-        # 证书
-        certifications = content.get("certifications", [])
-        if certifications:
-            lines.append("【资格证书】")
+        # 荣誉认证
+        others = content.get("others", {})
+        cert_list = others.get("certifications", [])
+        award_list = others.get("awards", [])
+        
+        # 兼容旧的 certifications 字段
+        old_certs = content.get("certifications", [])
+        if old_certs:
+            cert_list.extend([c if isinstance(c, str) else c.get('name', '') for c in old_certs])
+            # 去重
+            cert_list = list(dict.fromkeys(cert_list))
+
+        if cert_list or award_list:
+            lines.append("【荣誉认证】")
             lines.append("")
-            for cert in certifications:
-                if isinstance(cert, str):
-                    lines.append(f"▪ {cert}")
-                elif isinstance(cert, dict):
-                    name = cert.get('name', '未知证书')
-                    issuer = cert.get('issuer', '')
-                    date = cert.get('date', '')
-                    cert_line = f"▪ {name}"
-                    if issuer:
-                        cert_line += f" ({issuer})"
-                    if date:
-                        cert_line += f" - {date}"
-                    lines.append(cert_line)
+            if cert_list:
+                lines.append(f"▪ 资质证书: {', '.join(cert_list)}")
+            if award_list:
+                lines.append(f"▪ 荣誉奖项: {', '.join(award_list)}")
             lines.append("")
         
         return "\n".join(lines)

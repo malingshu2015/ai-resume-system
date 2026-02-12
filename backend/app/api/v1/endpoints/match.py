@@ -46,7 +46,9 @@ async def analyze_match(request: MatchRequest, db: Session = Depends(get_db)):
         analysis=match_result.get("analysis", {}),
         suggestions=match_result.get("suggestions", []),
         optimized_resume=match_result.get("optimized_resume"),
-        optimized_summary=match_result.get("optimized_summary")
+        optimized_summary=match_result.get("optimized_summary"),
+        skill_mastery_blueprints=match_result.get("skill_mastery_blueprints"),
+        learning_path=match_result.get("learning_path")
     )
     db.add(db_match)
     db.commit()
@@ -118,6 +120,8 @@ async def analyze_match(request: MatchRequest, db: Session = Depends(get_db)):
         "suggestions": match_result.get("suggestions"),
         "optimized_resume": match_result.get("optimized_resume"),
         "optimized_summary": match_result.get("optimized_summary"),
+        "skill_mastery_blueprints": match_result.get("skill_mastery_blueprints"),
+        "learning_path": match_result.get("learning_path"),
         "resume_name": resume.filename,
         "job_title": job.title,
         "job_company": job.company,
@@ -160,6 +164,8 @@ async def get_match_detail(match_id: str, db: Session = Depends(get_db)):
         "match_score": result.match_score,
         "analysis": result.analysis,
         "suggestions": result.suggestions,
+        "skill_mastery_blueprints": result.skill_mastery_blueprints,
+        "learning_path": result.learning_path,
         "resume": {
             "id": resume.id if resume else None,
             "filename": resume.filename if resume else None,

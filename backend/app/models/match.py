@@ -17,5 +17,7 @@ class MatchResult(Base):
     suggestions = Column(JSON)  # 优化建议列表
     optimized_resume = Column(String, nullable=True)  # 优化后的简历全文/片段
     optimized_summary = Column(String, nullable=True)  # 优化后的个人简介
+    skill_mastery_blueprints = Column(JSON, nullable=True)  # 深度技能图谱
+    learning_path = Column(JSON, nullable=True)  # 保留旧字段兼容性
     
     created_at = Column(DateTime, default=datetime.utcnow)

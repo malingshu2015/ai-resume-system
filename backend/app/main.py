@@ -40,6 +40,18 @@ try:
                 for col_name, col_type in missing_cols:
                     conn.execute(text(f"ALTER TABLE resumes ADD COLUMN {col_name} {col_type};"))
                     print(f"Successfully added {col_name} column to resumes table.")
+
+    # 3. 检查 match_results 表
+    if 'match_results' in inspector.get_table_names():
+        match_cols = [c['name'] for c in inspector.get_columns('match_results')]
+        if 'learning_path' not in match_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE match_results ADD COLUMN learning_path JSON;"))
+                print("Successfully added learning_path column to match_results table.")
+        if 'skill_mastery_blueprints' not in match_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE match_results ADD COLUMN skill_mastery_blueprints JSON;"))
+                print("Successfully added skill_mastery_blueprints column to match_results table.")
 except Exception as e:
     print(f"Migration error: {e}")
 

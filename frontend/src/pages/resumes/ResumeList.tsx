@@ -305,21 +305,42 @@ const ResumeList: React.FC = () => {
                 ) : (
                     <div className="resume-detail-overlay">
                         <div className="resume-detail-header">
-                            <Title level={2}>{currentResume?.parsed_data?.basic_info?.name || '未命名简历'}</Title>
+                            <Title level={2}>{currentResume?.parsed_data?.personal_info?.name || currentResume?.filename || '未命名简历'}</Title>
                             <Row gutter={[16, 8]}>
-                                <Col><Space><PhoneOutlined /> {currentResume?.parsed_data?.basic_info?.phone || '--'}</Space></Col>
-                                <Col><Space><MailOutlined /> {currentResume?.parsed_data?.basic_info?.email || '--'}</Space></Col>
-                                <Col><Space><EnvironmentOutlined /> {currentResume?.parsed_data?.basic_info?.location || '--'}</Space></Col>
+                                <Col><Space><PhoneOutlined /> {currentResume?.parsed_data?.personal_info?.phone || '--'}</Space></Col>
+                                <Col><Space><MailOutlined /> {currentResume?.parsed_data?.personal_info?.email || '--'}</Space></Col>
+                                <Col><Space><EnvironmentOutlined /> {currentResume?.parsed_data?.personal_info?.location || '--'}</Space></Col>
                             </Row>
                         </div>
 
                         <div className="resume-detail-content">
+                            {currentResume?.parsed_data?.personal_info?.summary && (
+                                <section className="detail-section">
+                                    <Title level={4}>职业总结</Title>
+                                    <Paragraph type="secondary">{currentResume.parsed_data.personal_info.summary}</Paragraph>
+                                </section>
+                            )}
+
                             <section className="detail-section">
-                                <Title level={4}>核心技能</Title>
+                                <Title level={4}>专业技能</Title>
                                 <div className="skill-cloud">
-                                    {currentResume?.parsed_data?.skills?.map((s: string, i: number) => (
-                                        <Tag key={i} className="apple-tag">{s}</Tag>
+                                    {(currentResume?.parsed_data?.skills_sections || []).map((section: any, i: number) => (
+                                        <div key={i} style={{ marginBottom: 8 }}>
+                                            <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>{section.category}</Text>
+                                            <Space wrap>
+                                                {section.skills?.map((s: string, j: number) => (
+                                                    <Tag key={j} className="apple-tag">{s}</Tag>
+                                                ))}
+                                            </Space>
+                                        </div>
                                     ))}
+                                    {currentResume?.parsed_data?.skills && Array.isArray(currentResume.parsed_data.skills) && (
+                                        <Space wrap>
+                                            {currentResume.parsed_data.skills.map((s: string, i: number) => (
+                                                <Tag key={i} className="apple-tag">{s}</Tag>
+                                            ))}
+                                        </Space>
+                                    )}
                                 </div>
                             </section>
 
@@ -330,13 +351,51 @@ const ResumeList: React.FC = () => {
                                         <div className="exp-dot" />
                                         <div className="exp-header">
                                             <Text strong style={{ fontSize: 16 }}>{work.company}</Text>
-                                            <Text type="secondary">{work.start_date} - {work.end_date}</Text>
+                                            <Text type="secondary">{work.duration || `${work.start_date} - ${work.end_date}`}</Text>
                                         </div>
                                         <Paragraph style={{ marginBottom: 4, fontWeight: 600 }}>{work.position}</Paragraph>
                                         <Paragraph type="secondary" style={{ fontSize: 14 }}>{work.description}</Paragraph>
                                     </div>
                                 ))}
                             </section>
+
+                            <section className="detail-section">
+                                <Title level={4}>项目经历</Title>
+                                {currentResume?.parsed_data?.project_experience?.map((proj: any, i: number) => (
+                                    <div className="exp-item" key={i}>
+                                        <div className="exp-dot" style={{ backgroundColor: '#1890ff' }} />
+                                        <div className="exp-header">
+                                            <Text strong style={{ fontSize: 16 }}>{proj.name}</Text>
+                                            <Text type="secondary">{proj.duration}</Text>
+                                        </div>
+                                        <Paragraph style={{ marginBottom: 4, fontWeight: 600 }}>{proj.role}</Paragraph>
+                                        <Paragraph type="secondary" style={{ fontSize: 14 }}>{proj.description}</Paragraph>
+                                        {proj.actions && proj.actions.length > 0 && (
+                                            <div style={{ marginTop: 8 }}>
+                                                {proj.actions.slice(0, 2).map((a: string, j: number) => (
+                                                    <div key={j} style={{ fontSize: 12, color: '#666' }}>• {a}</div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </section>
+
+                            {currentResume?.parsed_data?.education && currentResume.parsed_data.education.length > 0 && (
+                                <section className="detail-section">
+                                    <Title level={4}>教育背景</Title>
+                                    {currentResume.parsed_data.education.map((edu: any, i: number) => (
+                                        <div className="exp-item" key={i}>
+                                            <div className="exp-dot" style={{ backgroundColor: '#faad14' }} />
+                                            <div className="exp-header">
+                                                <Text strong style={{ fontSize: 16 }}>{edu.school}</Text>
+                                                <Text type="secondary">{edu.start_date} - {edu.end_date}</Text>
+                                            </div>
+                                            <Paragraph style={{ marginBottom: 0 }}>{edu.major} · {edu.degree}</Paragraph>
+                                        </div>
+                                    ))}
+                                </section>
+                            )}
                         </div>
 
                         {/* 操作面板：根据简历类型显示不同操作 */}

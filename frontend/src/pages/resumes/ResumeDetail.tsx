@@ -387,6 +387,98 @@ const ResumeDetail: React.FC = () => {
         );
     };
 
+    // 渲染项目经验编辑区
+    const renderProjectExperience = () => {
+        const projects = editedData?.project_experience || [];
+
+        return (
+            <Card title="项目经验" className="section-card">
+                {projects.map((proj: any, index: number) => (
+                    <div key={index} className="experience-item">
+                        <Row gutter={[16, 12]}>
+                            <Col span={12}>
+                                <Input
+                                    value={proj.name || ''}
+                                    onChange={(e) => {
+                                        const newProj = [...projects];
+                                        newProj[index].name = e.target.value;
+                                        updateField(['project_experience'], newProj);
+                                    }}
+                                    placeholder="项目名称"
+                                    addonBefore="项目"
+                                />
+                            </Col>
+                            <Col span={12}>
+                                <Input
+                                    value={proj.role || ''}
+                                    onChange={(e) => {
+                                        const newProj = [...projects];
+                                        newProj[index].role = e.target.value;
+                                        updateField(['project_experience'], newProj);
+                                    }}
+                                    placeholder="承担角色"
+                                    addonBefore="角色"
+                                />
+                            </Col>
+                            <Col span={12}>
+                                <Input
+                                    value={proj.duration || ''}
+                                    onChange={(e) => {
+                                        const newProj = [...projects];
+                                        newProj[index].duration = e.target.value;
+                                        updateField(['project_experience'], newProj);
+                                    }}
+                                    placeholder="时间范围"
+                                    addonBefore="时间"
+                                />
+                            </Col>
+                            <Col span={24}>
+                                <TextArea
+                                    value={proj.description || ''}
+                                    onChange={(e) => {
+                                        const newProj = [...projects];
+                                        newProj[index].description = e.target.value;
+                                        updateField(['project_experience'], newProj);
+                                    }}
+                                    placeholder="项目描述/背景"
+                                    autoSize={{ minRows: 2, maxRows: 4 }}
+                                />
+                            </Col>
+                            <Col span={24}>
+                                <Text type="secondary" style={{ fontSize: 12 }}>关键动作与技术方案（每行一条）</Text>
+                                <TextArea
+                                    value={(proj.actions || []).join('\n')}
+                                    onChange={(e) => {
+                                        const newProj = [...projects];
+                                        newProj[index].actions = e.target.value.split('\n').filter(Boolean);
+                                        updateField(['project_experience'], newProj);
+                                    }}
+                                    placeholder="关键行动，每行一条"
+                                    autoSize={{ minRows: 2, maxRows: 6 }}
+                                />
+                            </Col>
+                            <Col span={24}>
+                                <Input
+                                    value={proj.results || ''}
+                                    onChange={(e) => {
+                                        const newProj = [...projects];
+                                        newProj[index].results = e.target.value;
+                                        updateField(['project_experience'], newProj);
+                                    }}
+                                    placeholder="量化成果/技术指标"
+                                    addonBefore="成果"
+                                />
+                            </Col>
+                        </Row>
+                        {index < projects.length - 1 && <Divider />}
+                    </div>
+                ))}
+                {projects.length === 0 && <Text type="secondary">暂无项目经验</Text>}
+            </Card>
+        );
+    };
+
+
     // 渲染教育背景编辑区
     const renderEducation = () => {
         const education = editedData?.education || [];
@@ -488,6 +580,42 @@ const ResumeDetail: React.FC = () => {
                         />
                     </div>
                 ))}
+            </Card>
+        );
+    };
+
+    // 渲染荣誉认证编辑区
+    const renderOthers = () => {
+        const others = editedData?.others || {};
+        const certifications = others.certifications || [];
+        const awards = others.awards || [];
+
+        return (
+            <Card title="荣誉认证" className="section-card">
+                <div style={{ marginBottom: 16 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>资质证书（每行一条）</Text>
+                    <TextArea
+                        value={certifications.join('\n')}
+                        onChange={(e) => {
+                            const val = e.target.value.split('\n').filter(Boolean);
+                            updateField(['others', 'certifications'], val);
+                        }}
+                        placeholder="证书名称，如：CISSP、PMP、英语六级"
+                        autoSize={{ minRows: 2, maxRows: 6 }}
+                    />
+                </div>
+                <div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>荣誉奖项（每行一条）</Text>
+                    <TextArea
+                        value={awards.join('\n')}
+                        onChange={(e) => {
+                            const val = e.target.value.split('\n').filter(Boolean);
+                            updateField(['others', 'awards'], val);
+                        }}
+                        placeholder="获奖名称"
+                        autoSize={{ minRows: 2, maxRows: 4 }}
+                    />
+                </div>
             </Card>
         );
     };
@@ -666,6 +794,38 @@ const ResumeDetail: React.FC = () => {
                     </div>
                 )}
 
+                {/* 项目经验 */}
+                {editedData?.project_experience && editedData.project_experience.length > 0 && (
+                    <div className="preview-section">
+                        <Title level={4} className="section-title">项目经验</Title>
+                        {editedData.project_experience.map((proj: any, index: number) => (
+                            <div key={index} className="experience-preview project-preview">
+                                <div className="exp-header">
+                                    <Text strong className="company-name">{renderHighlightedText(proj.name)}</Text>
+                                    <Text type="secondary" className="duration">{proj.duration}</Text>
+                                </div>
+                                <div className="position-row">
+                                    <Text className="position-text">{renderHighlightedText(proj.role)}</Text>
+                                </div>
+                                <Paragraph className="exp-desc">{renderHighlightedText(proj.description)}</Paragraph>
+                                {proj.actions && proj.actions.length > 0 && (
+                                    <ul className="achievements">
+                                        {proj.actions.map((action: string, i: number) => (
+                                            <li key={i}>{renderHighlightedText(action)}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                                {proj.results && (
+                                    <div className="project-result-preview">
+                                        <Text strong>项目成果：</Text>
+                                        <Text>{renderHighlightedText(proj.results)}</Text>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 {/* 技能特长 */}
                 {skills.length > 0 && (
                     <div className="preview-section">
@@ -688,6 +848,55 @@ const ResumeDetail: React.FC = () => {
                                         </Space>
                                     </div>
                                 ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* 教育背景 */}
+                {editedData?.education && editedData.education.length > 0 && (
+                    <div className="preview-section">
+                        <Title level={4} className="section-title">教育背景</Title>
+                        {editedData.education.map((edu: any, index: number) => (
+                            <div key={index} className="experience-preview">
+                                <div className="exp-header">
+                                    <Text strong className="company-name">{renderHighlightedText(edu.school)}</Text>
+                                    <Text type="secondary" className="duration">{edu.start_date} - {edu.end_date}</Text>
+                                </div>
+                                <div className="position-row">
+                                    <Text className="position-text">
+                                        {renderHighlightedText(edu.major)} · {renderHighlightedText(edu.degree)}
+                                    </Text>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 荣誉认证 */}
+                {(editedData?.others?.certifications?.length > 0 || editedData?.others?.awards?.length > 0) && (
+                    <div className="preview-section">
+                        <Title level={4} className="section-title">荣誉认证</Title>
+                        <div className="others-preview">
+                            {editedData.others.certifications?.length > 0 && (
+                                <div style={{ marginBottom: 8 }}>
+                                    <Text strong>资质证书：</Text>
+                                    <Space wrap style={{ marginLeft: 8 }}>
+                                        {editedData.others.certifications.map((cert: string, i: number) => (
+                                            <Tag key={i} color="orange">{renderHighlightedText(cert)}</Tag>
+                                        ))}
+                                    </Space>
+                                </div>
+                            )}
+                            {editedData.others.awards?.length > 0 && (
+                                <div>
+                                    <Text strong>获奖经历：</Text>
+                                    <Space wrap style={{ marginLeft: 8 }}>
+                                        {editedData.others.awards.map((award: string, i: number) => (
+                                            <Tag key={i} color="gold">{renderHighlightedText(award)}</Tag>
+                                        ))}
+                                    </Space>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -774,8 +983,10 @@ const ResumeDetail: React.FC = () => {
                                             {renderPersonalInfo()}
                                             {renderJobIntention()}
                                             {renderWorkExperience()}
+                                            {renderProjectExperience()}
                                             {renderEducation()}
                                             {renderSkills()}
+                                            {renderOthers()}
 
                                             {/* 编辑模式底部保存按钮 */}
                                             <div className="edit-save-bar">

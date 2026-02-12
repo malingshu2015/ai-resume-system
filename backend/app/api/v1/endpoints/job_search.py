@@ -27,6 +27,24 @@ class BatchImportRequest(BaseModel):
     job_ids: List[str]
 
 
+class SmartSourcingRequest(BaseModel):
+    """智能寻访请求"""
+    keyword: str
+    locations: List[str]
+    max_results_per_loc: int = 10
+
+
+class ExternalJobImportRequest(BaseModel):
+    """外部职位导入请求"""
+    title: str
+    company: str
+    location: str
+    salary_range: Optional[str] = None
+    description: Optional[str] = None
+    source_url: Optional[str] = None
+    source_platform: Optional[str] = None
+
+
 @router.post("/search", response_model=JobSearchResponse)
 async def search_jobs(request: JobSearchRequest):
     """
@@ -223,6 +241,80 @@ async def recommend_jobs(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"推荐失败: {str(e)}")
+
+
+@router.post("/smart-sourcing")
+async def smart_sourcing(request: SmartSourcingRequest):
+    """
+    智能寻访：输入职位和多个城市，自动搜索并匹配库中人才
+    """
+    try:
+        results = await job_search_service.create_smart_sourcing_task(
+            keyword=request.keyword,
+            locations=request.locations,
+            max_results_per_loc=request.max_results_per_loc
+        )
+        return {
+            "keyword": request.keyword,
+            "locations": request.locations,
+            "total_jobs": len(results),
+            "results": results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"寻访任务失败: {str(e)}")
+
+
+@router.post("/import-external")
+async def import_external_job(request: ExternalJobImportRequest):
+    """
+    将搜出来的外部职位实时导入到本地职位库
+    """
+    from app.db.session import SessionLocal
+    from app.models.job import Job
+    import json
+    
+    db = SessionLocal()
+    try:
+        # 检查是否已存在（根据标题、公司、地点简单去重）
+        existing = db.query(Job).filter(
+            Job.title == request.title,
+            Job.company == request.company
+        ).first()
+        
+        if existing:
+            return {"job_id": existing.id, "message": "职位已存在"}
+            
+        # 创建新职位
+        job = Job(
+            title=request.title,
+            company=request.company,
+            description=request.description or f"地点: {request.location}\n薪资: {request.salary_range or '面议'}",
+            status="parsed",
+            parsed_data={
+                "title": request.title,
+                "company": request.company,
+                "location": request.location,
+                "salary": request.salary_range,
+                "requirements": {
+                    "experience_years": "未知",
+                    "skills": []
+                }
+            }
+        )
+        
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+        
+        return {
+            "job_id": job.id,
+            "message": "职位导入成功"
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"导入流程错误: {str(e)}")
+    finally:
+        db.close()
 
 
 @router.delete("/crawled-jobs/{job_id}")

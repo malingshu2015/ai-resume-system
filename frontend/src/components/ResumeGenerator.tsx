@@ -31,6 +31,7 @@ interface Props {
     resumeId: string;
     jobId?: string;
     initialSuggestions?: any;
+    refinedContent?: string;
     onClose?: () => void;
 }
 
@@ -44,7 +45,7 @@ interface GenerateResult {
     resumeData: any;
 }
 
-const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions, onClose }) => {
+const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions, refinedContent, onClose }) => {
     const [generating, setGenerating] = useState(false);
     const [exporting, setExporting] = useState(false);
     const [templates, setTemplates] = useState<Template[]>([]);
@@ -107,6 +108,7 @@ const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions,
                 job_id: selectedJob,
                 template: selectedTemplate,
                 suggestions: initialSuggestions,
+                refined_content: refinedContent,
                 save_to_library: true  // 自动保存到简历库
             });
 

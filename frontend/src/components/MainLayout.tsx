@@ -1,4 +1,4 @@
-import { Layout, Menu, Avatar, Dropdown, Typography } from 'antd'
+import { Layout, Menu, Avatar, Dropdown } from 'antd'
 import {
     HomeOutlined,
     FileTextOutlined,
@@ -6,12 +6,12 @@ import {
     ThunderboltOutlined,
     SettingOutlined,
     UserOutlined,
-    LogoutOutlined
+    LogoutOutlined,
+    RocketOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 
 const { Sider, Content } = Layout
-const { Title, Text } = Typography
 
 const MainLayout: React.FC = () => {
     const location = useLocation()
@@ -22,6 +22,7 @@ const MainLayout: React.FC = () => {
         { key: '/resume', icon: <FileTextOutlined />, label: '简历库' },
         { key: '/jobs', icon: <AimOutlined />, label: '职位库' },
         { key: '/match', icon: <ThunderboltOutlined />, label: '智能匹配' },
+        { key: '/sourcing', icon: <RocketOutlined />, label: '智能寻访' },
         { key: '/settings', icon: <SettingOutlined />, label: '设置' },
     ]
 

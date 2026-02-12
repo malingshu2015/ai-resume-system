@@ -1,0 +1,138 @@
+.sourcing-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.sourcing-header {
+    margin-bottom: 32px;
+}
+
+.search-card {
+    border-radius: 16px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+    margin-bottom: 32px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.location-tags {
+    display: flex;
+    align-items: center;
+}
+
+.tags-list {
+    flex: 1;
+    overflow-x: auto;
+    white-space: nowrap;
+    display: flex;
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.loc-tag {
+    font-size: 14px !important;
+    padding: 4px 12px !important;
+}
+
+.sourcing-btn {
+    height: 50px !important;
+    font-weight: bold !important;
+    font-size: 16px !important;
+    background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%) !important;
+    border: none !important;
+}
+
+.onboarding {
+    margin-top: 60px;
+    opacity: 0.8;
+}
+
+.feature-intro {
+    border-radius: 12px !important;
+    text-align: center;
+    height: 100%;
+}
+
+.job-match-card {
+    border-radius: 12px !important;
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+    border-left: 4px solid #1890ff !important;
+}
+
+.job-match-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+.job-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+}
+
+.job-title {
+    margin-bottom: 0 !important;
+    color: #262626;
+    max-width: 70%;
+}
+
+.source-link-btn {
+    padding: 0 !important;
+    height: auto !important;
+    font-size: 13px !important;
+}
+
+.salary-text {
+    color: #f5222d;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.source-tag {
+    margin-top: 8px;
+}
+
+.match-arrow {
+    font-size: 32px;
+    color: #faad14;
+    opacity: 0.4;
+}
+
+.match-info {
+    padding-left: 20px;
+    border-left: 1px dashed #f0f0f0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.match-header {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.score-tag {
+    font-weight: bold !important;
+}
+
+.matched-name {
+    font-size: 18px;
+    display: block;
+    margin-bottom: 16px;
+    color: #595959;
+}
+
+.action-btns {
+    display: flex;
+    gap: 12px;
+}

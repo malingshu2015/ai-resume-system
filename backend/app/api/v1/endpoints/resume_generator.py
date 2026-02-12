@@ -31,6 +31,7 @@ class GenerateResumeRequest(BaseModel):
     suggestions: Optional[List[SuggestionItem]] = None  # 用户选择并可能编辑过的建议列表
     optimization_suggestions: Optional[Dict] = None  # 保留向后兼容
     save_to_library: bool = True  # 是否保存到简历库（默认是）
+    refined_content: Optional[str] = None  # 用户编辑过的修订版内容
 
 
 class ExportResumeRequest(BaseModel):
@@ -86,7 +87,8 @@ async def generate_optimized_resume(
             resume_id=request.resume_id,
             job_id=request.job_id,
             optimization_suggestions=optimization_data,
-            template=request.template
+            template=request.template,
+            refined_content=request.refined_content
         )
         
         # 获取原始简历和目标岗位信息

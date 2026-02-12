@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import {
-    Card, Select, Button, Typography, message, Progress, Tag, Space, List, Alert, Row, Col, Steps, Empty, Divider, Tabs, Modal
+    Card, Select, Button, Typography, message, Progress, Tag, Space, Alert, Row, Col, Steps, Empty, Divider, Tabs, Input
 } from 'antd'
+import {
+    Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer
+} from 'recharts'
 import {
     ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined, BulbOutlined, RocketOutlined,
     FileTextOutlined, AimOutlined, ArrowRightOutlined, TrophyOutlined, StarOutlined,
-    HighlightOutlined, DeploymentUnitOutlined
+    HighlightOutlined, DeploymentUnitOutlined, EditOutlined, DownloadOutlined, FileWordOutlined
 } from '@ant-design/icons'
 import axios from 'axios'
-import ResumeGenerator from '../../components/ResumeGenerator'
+import { useNavigate, useLocation } from 'react-router-dom'
 import EditableResumePreview from '../../components/EditableResumePreview'
 import './MatchAnalysis.css'
 
@@ -47,14 +50,31 @@ interface MatchResult {
     }>
     optimized_resume?: string
     optimized_summary: string
+    skill_mastery_blueprints?: Array<{
+        skill: string
+        priority: string
+        gap_description: string
+        learning_path: {
+            stage1_theory: { title: string; points: string[]; resources: string[] }
+            stage2_practice: { title: string; task: string; tech_stack: string[] }
+            stage3_project: { title: string; project_name: string; implementation: string; resume_bullet: string }
+        }
+        interview_prep: { critical_question: string; answer_strategy: string }
+    }>
+    learning_path?: Array<{
+        skill: string
+        level: string
+        steps: Array<{
+            title: string
+            content: string
+        }>
+    }>
     // 新增：自动保存的简历信息
     saved_resume_id?: string
     saved_resume_name?: string
     job_company?: string
     job_title?: string
 }
-
-import { useNavigate, useLocation } from 'react-router-dom'
 
 const MatchAnalysis: React.FC = () => {
     const navigate = useNavigate()
@@ -66,19 +86,17 @@ const MatchAnalysis: React.FC = () => {
     const [analyzing, setAnalyzing] = useState(false)
     const [result, setResult] = useState<MatchResult | null>(null)
     const [currentStep, setCurrentStep] = useState(0)
-    const [isGeneratorOpen, setIsGeneratorOpen] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [editingResume, setEditingResume] = useState('')
+    const [generatingFinal, setGeneratingFinal] = useState(false)
+    const [finalResumeResult, setFinalResumeResult] = useState<any>(null)
     const [editedResumeData, setEditedResumeData] = useState<any>(null)
 
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
     useEffect(() => {
         fetchData()
-
-        // 如果是从职位列表跳转过来的，自动选中该职位
-        if (location.state && location.state.jobId) {
-            setSelectedJob(location.state.jobId)
-        }
-    }, [location])
+    }, [])
 
     useEffect(() => {
         if (selectedResume && selectedJob) {
@@ -96,8 +114,38 @@ const MatchAnalysis: React.FC = () => {
                 axios.get(`${baseUrl}/resumes/`),
                 axios.get(`${baseUrl}/jobs/`)
             ])
-            setResumes(resumeRes.data.filter((r: Resume) => r.status === 'parsed'))
-            setJobs(jobRes.data.filter((j: Job) => j.status === 'parsed'))
+            const parsedResumes = resumeRes.data.filter((r: Resume) => r.status === 'parsed')
+            const parsedJobs = jobRes.data.filter((j: Job) => j.status === 'parsed')
+            setResumes(parsedResumes)
+            setJobs(parsedJobs)
+
+            // NOTE: 必须在数据加载完成后再设置选中项，
+            // 否则 Select 组件中找不到对应的 Option 导致静默失败
+            const state = location.state as any
+            if (state?.jobId) {
+                // 验证该 jobId 确实存在于列表中
+                const jobExists = parsedJobs.some((j: Job) => j.id === state.jobId)
+                if (jobExists) {
+                    setSelectedJob(state.jobId)
+                    message.info('已从寻访页自动选中目标职位')
+                } else {
+                    message.warning('寻访职位尚未成功导入，请手动选择')
+                }
+            }
+            if (state?.resumeId) {
+                const resumeExists = parsedResumes.some((r: Resume) => r.id === state.resumeId)
+                if (resumeExists) {
+                    setSelectedResume(state.resumeId)
+                }
+            }
+
+            // 如果是从寻访页跳过来的，给一个引导提示
+            if (state?.fromSourcing) {
+                message.info({
+                    content: '职位已导入成功！请选择简历后点击"开始深度分析"',
+                    duration: 5
+                })
+            }
         } catch {
             message.error('加载数据失败')
         }
@@ -118,6 +166,7 @@ const MatchAnalysis: React.FC = () => {
                 job_id: selectedJob
             })
             setResult(response.data)
+            setEditingResume(response.data.optimized_resume || '')
 
             // 显示成功信息，包含自动保存提示
             if (response.data.saved_resume_id) {
@@ -208,6 +257,66 @@ const MatchAnalysis: React.FC = () => {
         } catch (error) {
             message.error('保存失败，请重试');
             console.error('保存简历失败:', error);
+        }
+    };
+
+    // 直接应用改写并生成最终简历
+    const handleApplyAndGenerate = async () => {
+        if (!selectedResume || !result) return;
+
+        setGeneratingFinal(true);
+        try {
+            const response = await axios.post(`${baseUrl}/resume-generator/generate`, {
+                resume_id: selectedResume,
+                job_id: selectedJob,
+                template: 'modern',
+                refined_content: result.optimized_resume,
+                save_to_library: true
+            });
+
+            setFinalResumeResult(response.data);
+            message.success('最终简历生成成功！您可以在下方直接进行最后微调。');
+
+            // 滚动到编辑器位置
+            setTimeout(() => {
+                const editorElement = document.getElementById('final-resume-editor');
+                if (editorElement) {
+                    editorElement.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 500);
+        } catch (error) {
+            message.error('生成最终简历失败，请重试');
+        } finally {
+            setGeneratingFinal(false);
+        }
+    };
+
+    const handleSaveFinalChanges = async (updatedData: any) => {
+        setFinalResumeResult({
+            ...finalResumeResult,
+            data: {
+                ...finalResumeResult.data,
+                content: updatedData
+            }
+        });
+    };
+
+    const handleDownloadFinal = async (format: string = 'pdf') => {
+        if (!finalResumeResult?.data) return;
+
+        try {
+            message.loading({ content: '正在导出...', key: 'exporting' });
+            const response = await axios.post(`${baseUrl}/resume-generator/export`, {
+                resume_data: finalResumeResult.data,
+                format: format
+            });
+
+            if (response.data.download_url) {
+                window.open(`${baseUrl}${response.data.download_url}`, '_blank');
+                message.success({ content: '导出成功！', key: 'exporting' });
+            }
+        } catch {
+            message.error({ content: '导出失败', key: 'exporting' });
         }
     };
 
@@ -421,16 +530,39 @@ const MatchAnalysis: React.FC = () => {
                                                 <div className="summary-title">
                                                     <BulbOutlined className="title-icon" /> AI 核心诊断报告
                                                 </div>
-                                                <div className="summary-content-box">
-                                                    <Paragraph className="summary-p">
-                                                        {result.analysis.experience_match || '正在进行全维度神经网络比对...'}
-                                                    </Paragraph>
-                                                    <div className="summary-footer-stats">
-                                                        <Space split={<Divider type="vertical" />}>
-                                                            <Text type="secondary">行业匹配: <Text strong>高</Text></Text>
-                                                            <Text type="secondary">岗位经验: <Text strong>{result.match_score > 70 ? '基本契合' : '有待补偿'}</Text></Text>
-                                                            <Text type="secondary">技能栈: <Text strong>{result.analysis.skill_match.matched.length} 项匹配</Text></Text>
-                                                        </Space>
+                                                <div className="summary-content-box" style={{ display: 'flex', gap: 20 }}>
+                                                    <div style={{ flex: 1.5 }}>
+                                                        <Paragraph className="summary-p">
+                                                            {result.analysis.experience_match || '正在进行全维度神经网络比对...'}
+                                                        </Paragraph>
+                                                        <div className="summary-footer-stats">
+                                                            <Space split={<Divider type="vertical" />}>
+                                                                <Text type="secondary">行业匹配: <Text strong>高</Text></Text>
+                                                                <Text type="secondary">岗位经验: <Text strong>{result.match_score > 70 ? '基本契合' : '有待补偿'}</Text></Text>
+                                                                <Text type="secondary">技能栈: <Text strong>{result.analysis.skill_match.matched.length} 项匹配</Text></Text>
+                                                            </Space>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ flex: 1, height: 200, marginTop: -20 }}>
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={[
+                                                                { subject: '核心技能', A: result.analysis.skill_match.matched.length, B: 10, fullMark: 10 },
+                                                                { subject: '项目契合', A: result.match_score / 10, B: 10, fullMark: 10 },
+                                                                { subject: '履历深度', A: result.match_score / 12, B: 10, fullMark: 10 },
+                                                                { subject: '职位意向', A: 9, B: 10, fullMark: 10 },
+                                                                { subject: '通用素质', A: 8, B: 10, fullMark: 10 },
+                                                            ]}>
+                                                                <PolarGrid stroke="#e2e8f0" />
+                                                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
+                                                                <Radar
+                                                                    name="当前匹配"
+                                                                    dataKey="A"
+                                                                    stroke="var(--apple-blue)"
+                                                                    fill="var(--apple-blue)"
+                                                                    fillOpacity={0.5}
+                                                                />
+                                                            </RadarChart>
+                                                        </ResponsiveContainer>
                                                     </div>
                                                 </div>
                                             </Card>
@@ -443,26 +575,147 @@ const MatchAnalysis: React.FC = () => {
                                         <div className="skill-matrix-grid">
                                             <Card title={<><CheckCircleOutlined style={{ color: '#52c41a' }} /> 优势项 (已具备)</>} className="matrix-card matched">
                                                 <div className="matrix-content">
-                                                    {result.analysis.skill_match.matched?.map((s, i) => (
+                                                    {result.analysis.skill_match.matched?.map((s: string, i: number) => (
                                                         <Tag key={i} className="skill-item-tag matched">{s}</Tag>
                                                     ))}
                                                 </div>
                                             </Card>
                                             <Card title={<><CloseCircleOutlined style={{ color: '#ff4d4f' }} /> 待提升 (建议针对性扩充)</>} className="matrix-card missing">
                                                 <div className="matrix-content">
-                                                    {result.analysis.skill_match.missing?.map((s, i) => (
+                                                    {result.analysis.skill_match.missing?.map((s: string, i: number) => (
                                                         <Tag key={i} className="skill-item-tag missing">{s}</Tag>
                                                     ))}
                                                 </div>
                                             </Card>
                                         </div>
 
+                                        {/* 深度技能通关图谱 */}
+                                        {result.skill_mastery_blueprints && result.skill_mastery_blueprints.length > 0 && (
+                                            <>
+                                                <Title level={4} className="module-title" style={{ marginTop: 40 }}>
+                                                    <DeploymentUnitOutlined /> 深度技能通关图谱 (Skill Mastery Blueprint)
+                                                </Title>
+                                                <div className="blueprint-container">
+                                                    {result.skill_mastery_blueprints.map((item: any, idx: number) => (
+                                                        <Card key={idx} className="blueprint-card" bordered={false}>
+                                                            <div className="blueprint-header">
+                                                                <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+                                                                    <Space>
+                                                                        <div className="blueprint-dot"></div>
+                                                                        <Text strong style={{ fontSize: 18 }}>{item.skill}</Text>
+                                                                        <Tag color={item.priority === '高' ? 'red' : 'orange'}>{item.priority}优先级</Tag>
+                                                                    </Space>
+                                                                    <Text type="secondary" italic>{item.gap_description}</Text>
+                                                                </Space>
+                                                            </div>
+
+                                                            <Row gutter={[24, 24]}>
+                                                                <Col span={16}>
+                                                                    <div className="roadmap-grid">
+                                                                        {/* 阶段 1：原理 */}
+                                                                        <div className="roadmap-phase phase-1">
+                                                                            <Title level={5}><BulbOutlined /> {item.learning_path.stage1_theory.title}</Title>
+                                                                            <ul className="points-list">
+                                                                                {item.learning_path.stage1_theory.points.map((p: string, pi: number) => (
+                                                                                    <li key={pi}>{p}</li>
+                                                                                ))}
+                                                                            </ul>
+                                                                            <div className="resource-box">
+                                                                                <Text strong>推荐资源：</Text>
+                                                                                {item.learning_path.stage1_theory.resources.map((r: string, ri: number) => (
+                                                                                    <Tag key={ri} className="res-tag">{r}</Tag>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* 阶段 2：实战 */}
+                                                                        <div className="roadmap-phase phase-2">
+                                                                            <Title level={5}><ThunderboltOutlined /> {item.learning_path.stage2_practice.title}</Title>
+                                                                            <Paragraph className="task-desc">{item.learning_path.stage2_practice.task}</Paragraph>
+                                                                            <div className="stack-box">
+                                                                                {item.learning_path.stage2_practice.tech_stack.map((t: string, ti: number) => (
+                                                                                    <Tag key={ti} color="blue" bordered={false}>{t}</Tag>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* 阶段 3：项目 */}
+                                                                        <div className="roadmap-phase phase-3">
+                                                                            <Title level={5}><RocketOutlined /> {item.learning_path.stage3_project.title}</Title>
+                                                                            <Text strong className="proj-name">项目：{item.learning_path.stage3_project.project_name}</Text>
+                                                                            <Paragraph className="impl-desc">{item.learning_path.stage3_project.implementation}</Paragraph>
+                                                                            <div className="resume-tip-box">
+                                                                                <Text strong><HighlightOutlined /> 简历话术卡：</Text>
+                                                                                <Paragraph className="bullet-text">{item.learning_path.stage3_project.resume_bullet}</Paragraph>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </Col>
+                                                                <Col span={8}>
+                                                                    <div className="interview-prep-section">
+                                                                        <div className="prep-header">
+                                                                            <Title level={5}><StarOutlined /> 面试前哨站</Title>
+                                                                        </div>
+                                                                        <div className="prep-body">
+                                                                            <div className="prep-item">
+                                                                                <Text strong className="q-label">夺命追问：</Text>
+                                                                                <Paragraph className="q-text">{item.interview_prep.critical_question}</Paragraph>
+                                                                            </div>
+                                                                            <div className="prep-item">
+                                                                                <Text strong className="q-label">对策锦囊：</Text>
+                                                                                <Paragraph className="a-text">{item.interview_prep.answer_strategy}</Paragraph>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </Col>
+                                                            </Row>
+                                                        </Card>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* 旧版技能树保留备份（仅在有数据时显示） */}
+                                        {result.learning_path && result.learning_path.length > 0 && !result.skill_mastery_blueprints && (
+                                            <>
+                                                <Title level={4} className="module-title" style={{ marginTop: 40 }}>
+                                                    <DeploymentUnitOutlined /> 技能通关路径 (Learning Skill Tree)
+                                                </Title>
+                                                <div className="learning-tree-container">
+                                                    {result.learning_path.map((item: any, idx: number) => (
+                                                        <Card key={idx} className="learning-path-card" bordered={false}>
+                                                            <div className="learning-path-header">
+                                                                <Space>
+                                                                    <div className="skill-dot"></div>
+                                                                    <Text strong style={{ fontSize: 16 }}>{item.skill}</Text>
+                                                                    <Tag color="blue">{item.level}</Tag>
+                                                                </Space>
+                                                            </div>
+                                                            <div className="learning-steps-wrapper">
+                                                                <Steps
+                                                                    direction="vertical"
+                                                                    size="small"
+                                                                    current={-1}
+                                                                    items={item.steps.map((step: any, sidx: number) => ({
+                                                                        title: <Text strong>{step.title}</Text>,
+                                                                        description: step.content,
+                                                                        status: 'wait',
+                                                                        icon: <div className="step-node-icon">{sidx + 1}</div>
+                                                                    }))}
+                                                                />
+                                                            </div>
+                                                        </Card>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+
                                         {/* 深度改写处方 */}
                                         <Title level={4} className="module-title" style={{ marginTop: 40 }}>
                                             <RocketOutlined /> 岗定改写“处方” (AI Refactor Suggestions)
                                         </Title>
                                         <div className="suggestion-prescription-list">
-                                            {result.suggestions.map((s, i) => (
+                                            {result.suggestions.map((s: any, i: number) => (
                                                 <Card key={i} className="prescription-item-card" bordered={false}>
                                                     <div className="prescription-inner">
                                                         <div className="prescription-left-bar">
@@ -516,11 +769,48 @@ const MatchAnalysis: React.FC = () => {
                                             style={{ marginBottom: 20 }}
                                         />
 
-                                        <Card className="optimized-preview-card" title="改写方案预览">
+                                        <Card
+                                            className="optimized-preview-card"
+                                            title="改写方案预览"
+                                            extra={
+                                                <Space>
+                                                    {isEditing ? (
+                                                        <>
+                                                            <Button size="small" onClick={() => {
+                                                                setIsEditing(false);
+                                                                setEditingResume(result.optimized_resume || '');
+                                                            }}>取消</Button>
+                                                            <Button type="primary" size="small" onClick={() => {
+                                                                setIsEditing(false);
+                                                                setResult({ ...result, optimized_resume: editingResume });
+                                                                message.success('本地修改已保存');
+                                                            }}>保存</Button>
+                                                        </>
+                                                    ) : (
+                                                        <Button icon={<EditOutlined />} size="small" onClick={() => setIsEditing(true)}>编辑文本</Button>
+                                                    )}
+                                                </Space>
+                                            }
+                                        >
                                             <div className="optimized-content-scroll">
-                                                <pre className="resume-pre">
-                                                    {renderTaggedText(result.optimized_resume || '未生成完整简历，请参考下方优化总结。')}
-                                                </pre>
+                                                {isEditing ? (
+                                                    <Input.TextArea
+                                                        value={editingResume}
+                                                        onChange={(e) => setEditingResume(e.target.value)}
+                                                        rows={25}
+                                                        className="resume-edit-textarea"
+                                                        style={{
+                                                            fontFamily: 'monospace',
+                                                            fontSize: '13px',
+                                                            backgroundColor: '#fafafa',
+                                                            borderRadius: '8px'
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <pre className="resume-pre">
+                                                        {renderTaggedText(result.optimized_resume || '未生成完整简历，请参考下方优化总结。')}
+                                                    </pre>
+                                                )}
                                             </div>
                                         </Card>
 
@@ -535,10 +825,11 @@ const MatchAnalysis: React.FC = () => {
                                                 <Button
                                                     type="primary"
                                                     size="large"
-                                                    icon={<CheckCircleOutlined />}
-                                                    onClick={() => setIsGeneratorOpen(true)}
+                                                    icon={<ThunderboltOutlined />}
+                                                    onClick={handleApplyAndGenerate}
+                                                    loading={generatingFinal}
                                                 >
-                                                    直接应用此改写
+                                                    {generatingFinal ? '正在精排最终产物...' : '应用此方案并生成最终简历'}
                                                 </Button>
                                             </div>
                                         </Card>
@@ -547,35 +838,46 @@ const MatchAnalysis: React.FC = () => {
                             }
                         ]}
                     />
+
+                    {/* 最终结果编辑区 */}
+                    {finalResumeResult && (
+                        <div id="final-resume-editor" className="final-editor-section" style={{ marginTop: 40 }}>
+                            <Divider>
+                                <Space>
+                                    <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                                    <span style={{ fontSize: 18, fontWeight: 600 }}>最终版本微调与导出</span>
+                                </Space>
+                            </Divider>
+
+                            <Alert
+                                message="最后微调"
+                                description="这是根据您的要求生成的最终结构化简历。您可以直接在下面的表单中修改任何不满意的地方，完成后点击右侧导出。"
+                                type="success"
+                                showIcon
+                                style={{ marginBottom: 24, borderRadius: 12 }}
+                                action={
+                                    <Space direction="vertical">
+                                        <Button type="primary" icon={<DownloadOutlined />} onClick={() => handleDownloadFinal('pdf')}>
+                                            导出 PDF
+                                        </Button>
+                                        <Button icon={<FileWordOutlined />} onClick={() => handleDownloadFinal('docx')}>
+                                            导出 Word
+                                        </Button>
+                                    </Space>
+                                }
+                            />
+
+                            <Card className="final-editor-card">
+                                <EditableResumePreview
+                                    resumeData={finalResumeResult.data.content}
+                                    onSave={handleSaveFinalChanges}
+                                />
+                            </Card>
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* 简历生成器 Modal */}
-            <Modal
-                title={<span><ThunderboltOutlined style={{ color: '#1890ff', marginRight: 8 }} /> 智能简历生产线</span>}
-                open={isGeneratorOpen}
-                onCancel={() => setIsGeneratorOpen(false)}
-                footer={null}
-                width={1000}
-                style={{ top: 20 }}
-                destroyOnClose
-            >
-                <div style={{ padding: '0 0 20px 0' }}>
-                    <Alert
-                        message="应用说明"
-                        description="我们将为您选择的简历应用上述 AI 改写方案。您可以进一步选择模板样式和导出格式。"
-                        type="success"
-                        showIcon
-                        style={{ marginBottom: 20 }}
-                    />
-                    <ResumeGenerator
-                        resumeId={selectedResume}
-                        jobId={selectedJob}
-                        initialSuggestions={result?.suggestions}
-                        onClose={() => setIsGeneratorOpen(false)}
-                    />
-                </div>
-            </Modal>
         </div>
     )
 }
