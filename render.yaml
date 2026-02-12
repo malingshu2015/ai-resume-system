@@ -1,0 +1,31 @@
+services:
+  # 后端服务 (FastAPI)
+  - type: web
+    name: ai-resume-backend
+    env: python
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: DATABASE_URL
+        sync: false # 请在 Render 后台填入您的 Supabase 链接
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PORT
+        value: 10000
+
+  # 前端服务 (React)
+  - type: web
+    name: ai-resume-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          name: ai-resume-backend
+          type: web
+          property: host
+    routes:
+      - type: rewrite
+        source: /.*
+        destination: /index.html
