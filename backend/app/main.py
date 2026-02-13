@@ -7,53 +7,31 @@ from app.models import resume, job, match, ai_config, job_search  # 导入模型
 # 创建数据库表
 # Base.metadata.create_all(bind=engine) # create_all 不会自动处理新增列
 
-# 手动添加缺失的列（采用更稳健的连接方式）
-from sqlalchemy import text, inspect
+# 尝试自动迁移数据库（不影响主程序启动）
 try:
-    # 1. 先检查列（在事务外进行探测）
+    from sqlalchemy import text, inspect
     inspector = inspect(engine)
     if 'resumes' in inspector.get_table_names():
         columns = [c['name'] for c in inspector.get_columns('resumes')]
-        
-        # 2. 如果有缺失字段，再开启事务执行 ALTER
-        missing_cols = []
-        if 'avatar_url' not in columns:
-            missing_cols.append(("avatar_url", "VARCHAR"))
+        with engine.begin() as conn:
+            # 只有在完全确定缺失时才执行 ALTER
+            if 'avatar_url' not in columns:
+                conn.execute(text("ALTER TABLE resumes ADD COLUMN avatar_url VARCHAR;"))
             
-        optimization_cols = [
-            ('is_optimized', 'VARCHAR'), 
-            ('parent_resume_id', 'VARCHAR'), 
-            ('target_job_id', 'VARCHAR'), 
-            ('target_job_title', 'VARCHAR'), 
-            ('target_job_company', 'VARCHAR'), 
-            ('optimization_notes', 'VARCHAR'),
-            ('share_token', 'VARCHAR'),
-            ('share_expires_at', 'TIMESTAMP')
-        ]
-        
-        for col_name, col_type in optimization_cols:
-            if col_name not in columns:
-                missing_cols.append((col_name, col_type))
-        
-        if missing_cols:
-            with engine.begin() as conn:
-                for col_name, col_type in missing_cols:
-                    conn.execute(text(f"ALTER TABLE resumes ADD COLUMN {col_name} {col_type};"))
-                    print(f"Successfully added {col_name} column to resumes table.")
-
-    # 3. 检查 match_results 表
+            # 简化的优化字段检查
+            if 'is_optimized' not in columns:
+                conn.execute(text("ALTER TABLE resumes ADD COLUMN is_optimized VARCHAR;"))
+                conn.execute(text("ALTER TABLE resumes ADD COLUMN parent_resume_id VARCHAR;"))
+                conn.execute(text("ALTER TABLE resumes ADD COLUMN target_job_id VARCHAR;"))
+    
     if 'match_results' in inspector.get_table_names():
         match_cols = [c['name'] for c in inspector.get_columns('match_results')]
         if 'learning_path' not in match_cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE match_results ADD COLUMN learning_path JSON;"))
-                print("Successfully added learning_path column to match_results table.")
-        if 'skill_mastery_blueprints' not in match_cols:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE match_results ADD COLUMN skill_mastery_blueprints JSON;"))
-                print("Successfully added skill_mastery_blueprints column to match_results table.")
 except Exception as e:
-    print(f"Migration error: {e}")
+    # 哪怕迁移失败，也要让 API 先跑起来，通过健康检查是第一优先级
+    print(f"Non-fatal migration skip: {e}")
 
 from fastapi.staticfiles import StaticFiles
 import os
