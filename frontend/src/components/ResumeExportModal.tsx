@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Modal, Tabs, Row, Col, Space, Typography, Alert, Divider, message, Button, Input } from 'antd'
 import axios from 'axios'
+import { API_ENDPOINTS } from '../api'
 import './ResumeExportModal.css'
 
 const { Title, Text } = Typography
@@ -24,13 +25,13 @@ const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
     const [selectedTemplate, setSelectedTemplate] = useState('modern')
     const [previewHtml, setPreviewHtml] = useState<string>('')
     const [loading, setLoading] = useState<boolean>(false)
-    
+
 
     // 获取预览 HTML
     const fetchPreviewHtml = async (templateId: string) => {
         setLoading(true)
         try {
-            const response = await axios.post(`${baseUrl}/resume-generator/preview`, {
+            const response = await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/preview`, {
                 resume_id: resumeId,
                 job_id: jobId,
                 template: templateId
@@ -62,7 +63,7 @@ const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
             message.loading({ content: `正在生成 ${formatName} 文件...`, key: 'export' })
 
             // 第一步：调用后端生成文件
-            const response = await axios.post(`${baseUrl}/resume-generator/export`, {
+            const response = await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/export`, {
                 resume_data: {
                     content: resumeContent,
                     template: selectedTemplate
@@ -74,7 +75,7 @@ const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
                 throw new Error(response.data.message || '导出失败')
             }
 
-            const downloadUrl = `${baseUrl}${response.data.download_url}`
+            const downloadUrl = `${API_ENDPOINTS.AI}${response.data.download_url}`
             const fileName = response.data.file_path?.split('/').pop() || `resume.${format}`
 
             message.loading({ content: `正在下载 ${formatName} 文件...`, key: 'export' })
@@ -126,7 +127,7 @@ const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
 
         try {
             message.loading({ content: '正在发送邮件...', key: 'email' })
-            const response = await axios.post(`${baseUrl}/resume-generator/send-email`, {
+            const response = await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/send-email`, {
                 resume_id: resumeId,
                 to_email: email,
                 format: 'pdf' // 默认发送 PDF
@@ -144,7 +145,7 @@ const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
     const handleGenerateShareLink = async () => {
         try {
             message.loading({ content: '正在生成分享链接...', key: 'share' })
-            const response = await axios.post(`${baseUrl}/resume-generator/share`, {
+            const response = await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/share`, {
                 resume_id: resumeId,
                 expire_days: 7
             })

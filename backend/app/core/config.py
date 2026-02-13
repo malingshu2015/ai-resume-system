@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Optional
 import os
 
 class Settings(BaseSettings):
@@ -9,36 +9,34 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # 安全配置
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "secret")
+    SECRET_KEY: str = "secret"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 天
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     
     # 数据库配置
-    DATABASE_URL: str = os.getenv("DATABASE_URL")
+    DATABASE_URL: Optional[str] = None
     
     # Redis 配置
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    REDIS_URL: str = "redis://redis:6379/0"
     
     # AI 配置
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
-    OPENAI_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4")
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_API_BASE: str = "https://api.openai.com/v1"
+    OPENAI_MODEL: str = "gpt-4"
 
-    # DeepSeek 专用配置 (如果存在则优先)
-    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY")
-    if DEEPSEEK_API_KEY and not OPENAI_API_KEY:
-        OPENAI_API_KEY = DEEPSEEK_API_KEY
-        OPENAI_API_BASE = "https://api.deepseek.com"
-        OPENAI_MODEL = "deepseek-chat"
+    # DeepSeek 配置
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_API_BASE: str = "https://api.deepseek.com"
     
-    # CORS 配置 (支持逗号分隔或 *)
-    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:3000"
+    # CORS 配置
+    ALLOWED_ORIGINS: str = "*"
     
     # 文件上传配置
     UPLOAD_DIR: str = "uploads"
-    MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
+    MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024
     
     class Config:
         env_file = ".env"
+        extra = "allow" # 允许额外的环境变量
 
 settings = Settings()

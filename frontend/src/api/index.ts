@@ -4,7 +4,9 @@
  */
 
 // 生产环境下从环境变量读取，开发环境下默认使用本地地址
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const rawBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// 强力移除末尾可能存在的 /api/v1 或 /api/v1/ 以防路径重复
+const API_BASE_URL = rawBase.replace(/\/api\/v1\/?$/, '');
 
 // 确保 BASE 路径的使用是统一的
 export const API_ENDPOINTS = {

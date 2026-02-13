@@ -13,6 +13,8 @@ import './ResumeGenerator.css';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+import { API_ENDPOINTS } from '../api';
+
 interface Template {
     id: string;
     name: string;
@@ -63,7 +65,6 @@ const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions,
     const [emailAddress, setEmailAddress] = useState('');
     const [sendingEmail, setSendingEmail] = useState(false);
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
     useEffect(() => {
         fetchTemplates();
@@ -74,7 +75,7 @@ const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions,
 
     const fetchTemplates = async () => {
         try {
-            const response = await axios.get(`${baseUrl}/resume-generator/templates`);
+            const response = await axios.get(`${API_ENDPOINTS.RESUME_GENERATOR}/templates`);
             setTemplates(response.data.templates);
         } catch (error) {
             message.error('获取模板列表失败');
@@ -83,7 +84,7 @@ const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions,
 
     const fetchFormats = async () => {
         try {
-            const response = await axios.get(`${baseUrl}/resume-generator/formats`);
+            const response = await axios.get(`${API_ENDPOINTS.RESUME_GENERATOR}/formats`);
             setFormats(response.data.formats);
         } catch (error) {
             message.error('获取导出格式失败');
@@ -92,7 +93,7 @@ const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions,
 
     const fetchJobs = async () => {
         try {
-            const response = await axios.get(`${baseUrl}/jobs/`);
+            const response = await axios.get(`${API_ENDPOINTS.JOBS}/`);
             setJobs(response.data);
         } catch (error) {
             console.error('获取职位列表失败');
@@ -103,7 +104,7 @@ const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions,
     const handleGenerate = async () => {
         setGenerating(true);
         try {
-            const response = await axios.post(`${baseUrl}/resume-generator/generate`, {
+            const response = await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/generate`, {
                 resume_id: resumeId,
                 job_id: selectedJob,
                 template: selectedTemplate,
@@ -138,13 +139,13 @@ const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions,
 
         setExporting(true);
         try {
-            const response = await axios.post(`${baseUrl}/resume-generator/export`, {
+            const response = await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/export`, {
                 resume_data: generateResult.resumeData,
                 format: selectedFormat
             });
 
             if (response.data.download_url) {
-                const downloadUrl = `${baseUrl}${response.data.download_url}`;
+                const downloadUrl = `${API_ENDPOINTS.AI}${response.data.download_url}`;
                 window.open(downloadUrl, '_blank');
                 message.success('已开始下载！');
             }
@@ -164,8 +165,7 @@ const ResumeGenerator: React.FC<Props> = ({ resumeId, jobId, initialSuggestions,
 
         setSendingEmail(true);
         try {
-            // 先导出文件
-            const exportRes = await axios.post(`${baseUrl}/resume-generator/export`, {
+            await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/export`, {
                 resume_data: generateResult?.resumeData,
                 format: selectedFormat
             });

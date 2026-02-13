@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import {
-    Card, Select, Button, Typography, message, Progress, Tag, Space, Alert, Row, Col, Steps, Empty, Divider, Tabs, Input
+    Card, Select, Button, Typography, message, Progress, Tag, Space, Alert, Row, Col, Steps, Empty, Divider, Tabs, Input, Checkbox
 } from 'antd'
 import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer
@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons'
 import axios from 'axios'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { API_ENDPOINTS } from '../../api'
 import EditableResumePreview from '../../components/EditableResumePreview'
 import './MatchAnalysis.css'
 
@@ -47,6 +48,7 @@ interface MatchResult {
         category: string
         content: string
         template?: string
+        edited?: boolean
     }>
     optimized_resume?: string
     optimized_summary: string
@@ -91,8 +93,65 @@ const MatchAnalysis: React.FC = () => {
     const [generatingFinal, setGeneratingFinal] = useState(false)
     const [finalResumeResult, setFinalResumeResult] = useState<any>(null)
     const [editedResumeData, setEditedResumeData] = useState<any>(null)
+    const [selectedSuggestionIndices, setSelectedSuggestionIndices] = useState<number[]>([])
+    const [editingSuggestionIndex, setEditingSuggestionIndex] = useState<number | null>(null)
+    const [editingSuggestionContent, setEditingSuggestionContent] = useState('')
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+    // 监听 result 变化，默认全选建议
+    useEffect(() => {
+        if (result?.suggestions) {
+            setSelectedSuggestionIndices(result.suggestions.map((_, index) => index))
+        }
+    }, [result])
+
+    const toggleSuggestion = (index: number) => {
+        const newSelected = [...selectedSuggestionIndices]
+        if (newSelected.includes(index)) {
+            setSelectedSuggestionIndices(newSelected.filter(i => i !== index))
+        } else {
+            setSelectedSuggestionIndices([...newSelected, index])
+        }
+    }
+
+    const toggleAllSuggestions = (e: any) => {
+        if (e.target.checked && result?.suggestions) {
+            setSelectedSuggestionIndices(result.suggestions.map((_, index) => index))
+        } else {
+            setSelectedSuggestionIndices([])
+        }
+    }
+
+    const startEditingSuggestion = (index: number, content: string) => {
+        setEditingSuggestionIndex(index)
+        setEditingSuggestionContent(content)
+    }
+
+    const cancelEditingSuggestion = () => {
+        setEditingSuggestionIndex(null)
+        setEditingSuggestionContent('')
+    }
+
+    const saveSuggestion = (index: number) => {
+        if (!result) return
+
+        const newSuggestions = [...result.suggestions]
+        newSuggestions[index] = {
+            ...newSuggestions[index],
+            content: editingSuggestionContent,
+            edited: true
+        }
+
+        setResult({
+            ...result,
+            suggestions: newSuggestions
+        })
+
+        setEditingSuggestionIndex(null)
+        setEditingSuggestionContent('')
+        message.success('建议内容已更新')
+    }
+
+
 
     useEffect(() => {
         fetchData()
@@ -111,11 +170,11 @@ const MatchAnalysis: React.FC = () => {
     const fetchData = async () => {
         try {
             const [resumeRes, jobRes] = await Promise.all([
-                axios.get(`${baseUrl}/resumes/`),
-                axios.get(`${baseUrl}/jobs/`)
+                axios.get(API_ENDPOINTS.RESUMES),
+                axios.get(API_ENDPOINTS.JOBS)
             ])
-            const parsedResumes = resumeRes.data.filter((r: Resume) => r.status === 'parsed')
-            const parsedJobs = jobRes.data.filter((j: Job) => j.status === 'parsed')
+            const parsedResumes = (resumeRes.data || []).filter((r: Resume) => r.status === 'parsed' || r.status === 'ready')
+            const parsedJobs = (jobRes.data || []).filter((j: Job) => j.status === 'parsed' || j.status === 'ready')
             setResumes(parsedResumes)
             setJobs(parsedJobs)
 
@@ -161,12 +220,13 @@ const MatchAnalysis: React.FC = () => {
         setResult(null)
 
         try {
-            const response = await axios.post(`${baseUrl}/match/analyze`, {
+            const response = await axios.post(`${API_ENDPOINTS.MATCH}/analyze`, {
                 resume_id: selectedResume,
                 job_id: selectedJob
             })
             setResult(response.data)
             setEditingResume(response.data.optimized_resume || '')
+            setCurrentStep(2) // Move to result step
 
             // 显示成功信息，包含自动保存提示
             if (response.data.saved_resume_id) {
@@ -177,8 +237,9 @@ const MatchAnalysis: React.FC = () => {
             } else {
                 message.success('深度分析完成，已为您生成优化方案！')
             }
-        } catch {
-            message.error('分析失败，请重试')
+        } catch (error) {
+            console.error('分析失败', error)
+            message.error('智能分析引擎响应超时，请重试')
         } finally {
             setAnalyzing(false)
         }
@@ -250,7 +311,7 @@ const MatchAnalysis: React.FC = () => {
             message.success('简历修改已保存');
 
             // 可选：调用后端 API 保存修改
-            // await axios.post(`${baseUrl}/resume/save`, {
+            // await axios.post(`${API_ENDPOINTS.RESUMES}/save`, {
             //     resume_id: selectedResume,
             //     data: updatedData
             // });
@@ -262,20 +323,18 @@ const MatchAnalysis: React.FC = () => {
 
     // 直接应用改写并生成最终简历
     const handleApplyAndGenerate = async () => {
-        if (!selectedResume || !result) return;
-
         setGeneratingFinal(true);
         try {
-            const response = await axios.post(`${baseUrl}/resume-generator/generate`, {
+            const response = await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/generate`, {
                 resume_id: selectedResume,
                 job_id: selectedJob,
                 template: 'modern',
-                refined_content: result.optimized_resume,
-                save_to_library: true
+                refined_content: result?.optimized_resume, // 用户手动编辑的文本内容
+                suggestions: result?.suggestions?.filter((_, i) => selectedSuggestionIndices.includes(i)) // 用户勾选的建议
             });
 
             setFinalResumeResult(response.data);
-            message.success('最终简历生成成功！您可以在下方直接进行最后微调。');
+            message.success('最终简历生成成功！您可以继续微调展示内容。');
 
             // 滚动到编辑器位置
             setTimeout(() => {
@@ -285,6 +344,7 @@ const MatchAnalysis: React.FC = () => {
                 }
             }, 500);
         } catch (error) {
+            console.error('生成简历失败:', error);
             message.error('生成最终简历失败，请重试');
         } finally {
             setGeneratingFinal(false);
@@ -306,13 +366,13 @@ const MatchAnalysis: React.FC = () => {
 
         try {
             message.loading({ content: '正在导出...', key: 'exporting' });
-            const response = await axios.post(`${baseUrl}/resume-generator/export`, {
+            const response = await axios.post(`${API_ENDPOINTS.RESUME_GENERATOR}/export`, {
                 resume_data: finalResumeResult.data,
                 format: format
             });
 
             if (response.data.download_url) {
-                window.open(`${baseUrl}${response.data.download_url}`, '_blank');
+                window.open(`${API_ENDPOINTS.AI}${response.data.download_url}`, '_blank');
                 message.success({ content: '导出成功！', key: 'exporting' });
             }
         } catch {
@@ -714,10 +774,48 @@ const MatchAnalysis: React.FC = () => {
                                         <Title level={4} className="module-title" style={{ marginTop: 40 }}>
                                             <RocketOutlined /> 岗定改写“处方” (AI Refactor Suggestions)
                                         </Title>
+
+                                        {result.suggestions && result.suggestions.length > 0 && (
+                                            <div className="suggestions-toolbar" style={{ marginBottom: 16, background: '#f5f7fa', padding: '10px 16px', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Checkbox
+                                                    checked={selectedSuggestionIndices.length === result.suggestions.length}
+                                                    indeterminate={selectedSuggestionIndices.length > 0 && selectedSuggestionIndices.length < result.suggestions.length}
+                                                    onChange={toggleAllSuggestions}
+                                                >
+                                                    全选所有建议 ({selectedSuggestionIndices.length}/{result.suggestions.length})
+                                                </Checkbox>
+                                                <Button
+                                                    type="primary"
+                                                    size="small"
+                                                    onClick={handleApplyAndGenerate}
+                                                    disabled={selectedSuggestionIndices.length === 0}
+                                                >
+                                                    应用选中建议并生成
+                                                </Button>
+                                            </div>
+                                        )}
+
                                         <div className="suggestion-prescription-list">
                                             {result.suggestions.map((s: any, i: number) => (
-                                                <Card key={i} className="prescription-item-card" bordered={false}>
+                                                <Card
+                                                    key={i}
+                                                    className={`prescription-item-card ${selectedSuggestionIndices.includes(i) ? 'selected' : ''}`}
+                                                    bordered={false}
+                                                    onClick={() => toggleSuggestion(i)}
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                        border: selectedSuggestionIndices.includes(i) ? '1px solid #1890ff' : '1px solid transparent',
+                                                        transition: 'all 0.3s'
+                                                    }}
+                                                >
                                                     <div className="prescription-inner">
+                                                        <div className="prescription-checkbox" style={{ marginRight: 16, display: 'flex', alignItems: 'center' }}>
+                                                            <Checkbox
+                                                                checked={selectedSuggestionIndices.includes(i)}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                onChange={() => toggleSuggestion(i)}
+                                                            />
+                                                        </div>
                                                         <div className="prescription-left-bar">
                                                             <div className="category-label">{s.category}</div>
                                                             <div className="action-icon">
@@ -725,7 +823,34 @@ const MatchAnalysis: React.FC = () => {
                                                             </div>
                                                         </div>
                                                         <div className="prescription-right-content">
-                                                            <Title level={5} className="item-title">{s.content}</Title>
+                                                            {editingSuggestionIndex === i ? (
+                                                                <div className="suggestion-editor">
+                                                                    <Input.TextArea
+                                                                        value={editingSuggestionContent}
+                                                                        onChange={(e) => setEditingSuggestionContent(e.target.value)}
+                                                                        autoSize={{ minRows: 2, maxRows: 6 }}
+                                                                        style={{ marginBottom: 8 }}
+                                                                    />
+                                                                    <Space>
+                                                                        <Button type="primary" size="small" onClick={(e) => { e.stopPropagation(); saveSuggestion(i); }}>保存</Button>
+                                                                        <Button size="small" onClick={(e) => { e.stopPropagation(); cancelEditingSuggestion(); }}>取消</Button>
+                                                                    </Space>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="suggestion-content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                                                    <Title level={5} className="item-title" style={{ flex: 1 }}>
+                                                                        {s.content}
+                                                                        {s.edited && <Tag color="orange" style={{ marginLeft: 8, fontSize: 10 }}>已编辑</Tag>}
+                                                                    </Title>
+                                                                    <Button
+                                                                        type="text"
+                                                                        icon={<EditOutlined />}
+                                                                        size="small"
+                                                                        onClick={(e) => { e.stopPropagation(); startEditingSuggestion(i, s.content); }}
+                                                                    />
+                                                                </div>
+                                                            )}
+
                                                             {s.template && (
                                                                 <div className="ai-refactor-box">
                                                                     <div className="box-header">
@@ -733,7 +858,8 @@ const MatchAnalysis: React.FC = () => {
                                                                             <ThunderboltOutlined />
                                                                             <span>AI 推荐改写模版</span>
                                                                         </Space>
-                                                                        <Button type="link" size="small" onClick={() => {
+                                                                        <Button type="link" size="small" onClick={(e) => {
+                                                                            e.stopPropagation();
                                                                             navigator.clipboard.writeText(s.template || '');
                                                                             message.success('已复制到剪贴板');
                                                                         }}>复制</Button>

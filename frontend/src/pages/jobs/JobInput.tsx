@@ -31,7 +31,7 @@ const JobInput: React.FC = () => {
     const [successData, setSuccessData] = useState<any>(null);
 
     const navigate = useNavigate();
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+    
 
     // 处理文档上传核心逻辑
     const processDocument = async (file: File) => {
@@ -40,7 +40,7 @@ const JobInput: React.FC = () => {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await axios.post(`${baseUrl}/jobs/analyze-document`, formData, {
+            const response = await axios.post(`${API_ENDPOINTS.JOBS}/analyze-document`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -93,7 +93,7 @@ const JobInput: React.FC = () => {
             const base64 = reader.result as string;
             setAnalyzingImage(true);
             try {
-                const response = await axios.post(`${baseUrl}/jobs/analyze-screenshot`, { image: base64 });
+                const response = await axios.post(`${API_ENDPOINTS.JOBS}/analyze-screenshot`, { image: base64 });
                 const { title, company, description } = response.data;
                 form.setFieldsValue({
                     title,
@@ -138,7 +138,7 @@ const JobInput: React.FC = () => {
     const handleSubmit = async (values: any) => {
         setLoading(true);
         try {
-            const response = await axios.post(`${baseUrl}/jobs/`, values);
+            const response = await axios.post(`${API_ENDPOINTS.JOBS}/`, values);
             setSuccessData(response.data);
             message.success('职位录入成功');
         } catch (error: any) {

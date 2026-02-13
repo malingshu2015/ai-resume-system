@@ -21,6 +21,7 @@ class SuggestionItem(BaseModel):
     category: str
     content: str
     template: Optional[str] = None
+    edited: bool = False
 
 
 class GenerateResumeRequest(BaseModel):
@@ -74,7 +75,8 @@ async def generate_optimized_resume(
                     {
                         "category": s.category,
                         "content": s.content,
-                        "template": s.template
+                        "template": s.template,
+                        "edited": s.edited
                     }
                     for s in request.suggestions
                 ]

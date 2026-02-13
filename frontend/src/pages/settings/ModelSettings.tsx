@@ -8,6 +8,7 @@ import {
     CloudServerOutlined, SwapOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
+import { API_ENDPOINTS } from '../../api';
 import './ModelSettings.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -29,7 +30,6 @@ const ModelSettings: React.FC = () => {
     const [editingConfig, setEditingConfig] = useState<AIConfig | null>(null);
     const [form] = Form.useForm();
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
     useEffect(() => {
         fetchConfigs();
@@ -38,7 +38,7 @@ const ModelSettings: React.FC = () => {
     const fetchConfigs = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${baseUrl}/config/`);
+            const response = await axios.get(`${API_ENDPOINTS.CONFIG}/`);
             const data = Array.isArray(response.data) ? response.data : response.data?.data || []
             setConfigs(data);
         } catch (error) {
@@ -73,7 +73,7 @@ const ModelSettings: React.FC = () => {
             centered: true,
             onOk: async () => {
                 try {
-                    await axios.delete(`${baseUrl}/config/${id}`);
+                    await axios.delete(`${API_ENDPOINTS.CONFIG}/${id}`);
                     message.success('删除成功');
                     fetchConfigs();
                 } catch (error) {
@@ -85,7 +85,7 @@ const ModelSettings: React.FC = () => {
 
     const handleActivate = async (id: string) => {
         try {
-            await axios.post(`${baseUrl}/config/${id}/activate`);
+            await axios.post(`${API_ENDPOINTS.CONFIG}/${id}/activate`);
             message.success('已应用新模型配置');
             fetchConfigs();
         } catch (error) {
@@ -99,10 +99,10 @@ const ModelSettings: React.FC = () => {
             if (editingConfig) {
                 const updateData = { ...values };
                 if (!updateData.api_key) delete updateData.api_key;
-                await axios.put(`${baseUrl}/config/${editingConfig.id}`, updateData);
+                await axios.put(`${API_ENDPOINTS.CONFIG}/${editingConfig.id}`, updateData);
                 message.success('更新成功');
             } else {
-                await axios.post(`${baseUrl}/config/`, values);
+                await axios.post(`${API_ENDPOINTS.CONFIG}/`, values);
                 message.success('配置已添加');
             }
             setModalVisible(false);

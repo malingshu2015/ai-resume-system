@@ -17,7 +17,7 @@ import {
     Badge
 } from 'antd';
 import { CalendarOutlined, SearchOutlined, EnvironmentOutlined, DollarOutlined, ExperimentOutlined, ReadOutlined, GlobalOutlined, RocketOutlined, ArrowRightOutlined, TeamOutlined, ExportOutlined, ImportOutlined, FileSearchOutlined, BookOutlined } from '@ant-design/icons';
-import API_BASE_URL from '../../api';
+import { API_ENDPOINTS } from '../../api';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './SmartSourcing.css';
@@ -57,8 +57,6 @@ const SmartSourcing: React.FC = () => {
         visible: false, job: null
     });
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-
     /** 执行搜索 */
     const handleSearch = async () => {
         if (!keyword.trim()) {
@@ -74,7 +72,7 @@ const SmartSourcing: React.FC = () => {
         setResults([]);
         setHasSearched(false);
         try {
-            const response = await axios.post(`${API_BASE_URL}/job-search/smart-sourcing`, {
+            const response = await axios.post(`${API_ENDPOINTS.JOB_SEARCH}/smart-sourcing`, {
                 keyword: keyword.trim(),
                 locations,
                 max_results_per_loc: 10
@@ -85,7 +83,7 @@ const SmartSourcing: React.FC = () => {
             if (data.length > 0) {
                 message.success(`成功寻访到 ${data.length} 个真实职位机会`);
             } else {
-                message.info('未在指定城市找到相关职位，请尝试更宽泛的关键词');
+                message.info('未在指定城市找到相关职位，请尝试更宽泊的关键词');
             }
         } catch (error) {
             console.error('寻访失败:', error);
@@ -106,17 +104,12 @@ const SmartSourcing: React.FC = () => {
 
     /**
      * 核心流程：导入职位到本地库 → 跳转到智能匹配页
-     * 
-     * 这是解决"匹配页面找不到该职位"问题的关键：
-     * 1. 把外部职位数据写入 Job 表（status=parsed）
-     * 2. 拿到 jobId 后跳转到 /match 并通过 state 传递
-     * 3. MatchAnalysis 页面会自动选中该职位
      */
     const handleGoToMatch = async (item: SourcingResult, index: number) => {
         setImportingIndex(index);
         try {
             // 1. 将选中的职位导入本地职位库
-            const importRes = await axios.post(`${baseUrl}/job-search/import-external`, {
+            const importRes = await axios.post(`${API_ENDPOINTS.JOB_SEARCH}/import-external`, {
                 title: item.job.title,
                 company: item.job.company,
                 location: item.job.location,
@@ -135,7 +128,7 @@ const SmartSourcing: React.FC = () => {
 
             message.success(`"${item.job.title}" 已导入职位库，正在跳转到智能匹配...`);
 
-            // 2. 跳转到匹配分析页面，携带 jobId 和 resumeId
+            // 2. 跳转到匹配分析页面
             navigate('/match', {
                 state: {
                     jobId: jobId,
@@ -152,15 +145,9 @@ const SmartSourcing: React.FC = () => {
         }
     };
 
-    /** 查看职位详情弹窗 */
-    const showJobDetail = (item: SourcingResult) => {
-        setDetailModal({ visible: true, job: item });
-    };
-
     const addLocation = () => {
-        const trimmed = locInput.trim();
-        if (trimmed && !locations.includes(trimmed)) {
-            setLocations([...locations, trimmed]);
+        if (locInput.trim() && !locations.includes(locInput.trim())) {
+            setLocations([...locations, locInput.trim()]);
             setLocInput('');
         }
     };
@@ -170,330 +157,168 @@ const SmartSourcing: React.FC = () => {
     };
 
     return (
-        <div className="sourcing-container">
-            <div className="sourcing-header">
-                <Title level={2}>
-                    <RocketOutlined /> 智能人才/职位自动寻访系统
-                </Title>
+        <div className="smart-sourcing-container">
+            <div className="header-section">
+                <Title level={2}><GlobalOutlined /> 智能全网职位寻访</Title>
                 <Paragraph type="secondary">
-                    基于全网实时招聘数据，自动检索职位并与人才库简历进行智能匹配。输入关键词和目标城市，一键寻访。
+                    输入您的目标职位，AI 将在全网范围内深度实时匹配最适合您的招聘机会，并提供精准推荐。
                 </Paragraph>
             </div>
 
-            {/* 搜索区域 */}
             <Card className="search-card">
-                <Row gutter={24} align="middle">
-                    <Col span={8}>
-                        <div className="input-group">
-                            <Text strong>职位关键词</Text>
-                            <Input
-                                prefix={<SearchOutlined />}
-                                placeholder="例如：安全架构师、网络安全工程师"
-                                value={keyword}
-                                onChange={e => setKeyword(e.target.value)}
-                                onPressEnter={handleSearch}
-                                size="large"
-                            />
-                        </div>
-                    </Col>
-                    <Col span={12}>
-                        <div className="input-group">
-                            <Text strong>目标城市</Text>
-                            <div className="location-tags">
-                                <Input
-                                    placeholder="输入城市名并回车"
-                                    value={locInput}
-                                    onChange={e => setLocInput(e.target.value)}
-                                    onPressEnter={addLocation}
-                                    style={{ width: 150, marginRight: 8 }}
-                                />
-                                <div className="tags-list">
-                                    {locations.map(loc => (
-                                        <Tag
-                                            key={loc}
-                                            closable
-                                            onClose={() => removeLocation(loc)}
-                                            color="blue"
-                                            className="loc-tag"
-                                        >
-                                            {loc}
-                                        </Tag>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </Col>
-                    <Col span={4}>
-                        <Button
-                            type="primary"
-                            icon={<RocketOutlined />}
+                <Row gutter={24} align="bottom">
+                    <Col xs={24} md={12}>
+                        <div className="input-label">目标职位关键词</div>
+                        <Input
                             size="large"
-                            block
-                            loading={loading}
-                            onClick={handleSearch}
-                            className="sourcing-btn"
-                        >
-                            开始寻访
-                        </Button>
+                            placeholder="如：数据安全专家、Python 开发"
+                            value={keyword}
+                            onChange={(e) => setKeyword(e.target.value)}
+                            onPressEnter={handleSearch}
+                            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                        />
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <div className="input-label">目标城市 (可多选)</div>
+                        <div className="city-input-group">
+                            <Input
+                                size="large"
+                                placeholder="输入后回车添加"
+                                value={locInput}
+                                onChange={(e) => setLocInput(e.target.value)}
+                                onPressEnter={addLocation}
+                                prefix={<EnvironmentOutlined style={{ color: '#bfbfbf' }} />}
+                            />
+                            <Button size="large" type="primary" onClick={handleSearch} loading={loading} icon={<SearchOutlined />}>
+                                开始全网深度寻访
+                            </Button>
+                        </div>
                     </Col>
                 </Row>
+                <div className="location-tags">
+                    {locations.map(loc => (
+                        <Tag key={loc} closable onClose={() => removeLocation(loc)} className="city-tag">
+                            {loc}
+                        </Tag>
+                    ))}
+                </div>
             </Card>
 
-            {/* 搜索结果区域 */}
             <div className="results-section">
-                <Spin spinning={loading} tip="正在从招聘平台实时检索职位...">
-                    {results.length > 0 && (
-                        <div style={{ marginBottom: 16 }}>
-                            <Text type="secondary">
-                                共找到 <Text strong style={{ color: '#1677ff' }}>{results.length}</Text> 个有效职位（仅展示近 3 个月内发布），
-                                数据来源于 BOSS 直聘、智联招聘等主流平台
-                            </Text>
-                        </div>
-                    )}
+                {loading ? (
+                    <div className="loading-state">
+                        <Spin size="large" tip="AI 正在穿透全网招聘信息，精准匹配中..." />
+                        <div className="loading-tip">正在实时分析各大招聘平台、行业官网及隐藏招聘动态</div>
+                    </div>
+                ) : results.length > 0 ? (
+                    <Row gutter={[24, 24]}>
+                        {results.map((item, index) => (
+                            <Col xs={24} lg={12} key={index}>
+                                <Card
+                                    className="job-result-card"
+                                    hoverable
+                                    actions={[
+                                        <Button type="link" icon={<ExportOutlined />} onClick={() => handleViewSource(item.job.source_url)}>查看源页面</Button>,
+                                        <Button
+                                            type="primary"
+                                            icon={<RocketOutlined />}
+                                            loading={importingIndex === index}
+                                            onClick={() => handleGoToMatch(item, index)}
+                                        >
+                                            立即开启智能匹配
+                                        </Button>
+                                    ]}
+                                >
+                                    <div className="job-card-header">
+                                        <div className="job-title-row">
+                                            <Title level={4} className="job-title" ellipsis={{ tooltip: item.job.title }}>{item.job.title}</Title>
+                                            <Tag color="blue">{item.job.source_platform}</Tag>
+                                        </div>
+                                        <div className="company-info">
+                                            <Text strong className="company-name">{item.job.company}</Text>
+                                        </div>
+                                    </div>
 
-                    {results.length > 0 ? (
-                        <div className="results-grid">
-                            <Row gutter={[16, 16]}>
-                                {results.map((item, index) => (
-                                    <Col span={24} key={index}>
-                                        <Card className="job-match-card" hoverable>
-                                            <Row gutter={24} align="middle">
-                                                {/* 左侧：职位信息 */}
-                                                <Col span={10}>
-                                                    <div className="job-info">
-                                                        <div className="job-title-row">
-                                                            <Title level={4} className="job-title">
-                                                                {item.job.title}
-                                                            </Title>
-                                                        </div>
-                                                        <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                                                            <Text strong style={{ color: '#1677ff' }}>
-                                                                {item.job.company}
-                                                            </Text>
-                                                            <Space split={<Text type="secondary">·</Text>}>
-                                                                <Text>
-                                                                    <EnvironmentOutlined /> {item.job.location}
-                                                                </Text>
-                                                                <Text className="salary-text">
-                                                                    <DollarOutlined /> {item.job.salary_range}
-                                                                </Text>
-                                                            </Space>
-                                                            <Space size={4}>
-                                                                {item.job.experience_required && (
-                                                                    <Tag>{item.job.experience_required}</Tag>
-                                                                )}
-                                                                {item.job.education && (
-                                                                    <Tag icon={<BookOutlined />}>{item.job.education}</Tag>
-                                                                )}
-                                                                <Tag color="processing" icon={<GlobalOutlined />}>
-                                                                    {item.job.source_platform}
-                                                                </Tag>
-                                                                {item.job.publish_date && (
-                                                                    <Tag color="cyan" icon={<CalendarOutlined />}>
-                                                                        {item.job.publish_date === '未知' ? '近期' : item.job.publish_date}
-                                                                    </Tag>
-                                                                )}
-                                                            </Space>
-                                                        </Space>
-                                                        <div className="job-actions-row">
-                                                            <Button
-                                                                type="link"
-                                                                size="small"
-                                                                icon={<ExportOutlined />}
-                                                                onClick={() => handleViewSource(item.job.source_url)}
-                                                            >
-                                                                查看原网页
-                                                            </Button>
-                                                            <Button
-                                                                type="link"
-                                                                size="small"
-                                                                icon={<FileSearchOutlined />}
-                                                                onClick={() => showJobDetail(item)}
-                                                            >
-                                                                查看详情
-                                                            </Button>
+                                    <Row className="job-meta-row">
+                                        <Col span={8}><EnvironmentOutlined /> {item.job.location}</Col>
+                                        <Col span={8}><DollarOutlined /> <Text type="danger" strong>{item.job.salary_range}</Text></Col>
+                                        <Col span={8}><CalendarOutlined /> {item.job.publish_date || '近期发布'}</Col>
+                                    </Row>
+
+                                    <div className="match-score-section">
+                                        <Badge.Ribbon text="推荐度" color={item.best_match && item.best_match.score > 85 ? 'gold' : 'blue'}>
+                                            <Card className="match-mini-card">
+                                                {item.best_match ? (
+                                                    <div className="match-info">
+                                                        <Text type="secondary">最佳匹配简历：</Text>
+                                                        <Text strong>{item.best_match.name}</Text>
+                                                        <div className="score-badge">
+                                                            <Statistic
+                                                                value={item.best_match.score}
+                                                                suffix="%"
+                                                                valueStyle={{ color: item.best_match.score > 80 ? '#34C759' : '#007AFF', fontSize: 20 }}
+                                                            />
                                                         </div>
                                                     </div>
-                                                </Col>
+                                                ) : (
+                                                    <div className="no-match-info">
+                                                        <Text type="secondary">暂无可用匹配简历</Text>
+                                                    </div>
+                                                )}
+                                            </Card>
+                                        </Badge.Ribbon>
+                                    </div>
 
-                                                {/* 中间：箭头 */}
-                                                <Col span={4} style={{ textAlign: 'center' }}>
-                                                    <ArrowRightOutlined className="match-arrow" />
-                                                </Col>
-
-                                                {/* 右侧：人才匹配信息 */}
-                                                <Col span={10}>
-                                                    {item.best_match ? (
-                                                        <div className="match-info">
-                                                            <div className="match-header">
-                                                                <TeamOutlined />{' '}
-                                                                <Text strong>人才库最佳匹配</Text>
-                                                                <Tag
-                                                                    color={
-                                                                        item.best_match.score > 70
-                                                                            ? 'green'
-                                                                            : item.best_match.score > 40
-                                                                                ? 'orange'
-                                                                                : 'default'
-                                                                    }
-                                                                    className="score-tag"
-                                                                >
-                                                                    {item.best_match.score.toFixed(1)}% 契合度
-                                                                </Tag>
-                                                            </div>
-                                                            <Text className="matched-name">
-                                                                {item.best_match.name}
-                                                            </Text>
-                                                            <div className="action-btns">
-                                                                <Button
-                                                                    type="primary"
-                                                                    size="small"
-                                                                    icon={<ImportOutlined />}
-                                                                    loading={importingIndex === index}
-                                                                    onClick={() => handleGoToMatch(item, index)}
-                                                                >
-                                                                    导入并深度分析
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="match-info">
-                                                            <Empty
-                                                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                                                description="人才库暂无匹配简历"
-                                                            />
-                                                            <Button
-                                                                type="dashed"
-                                                                size="small"
-                                                                icon={<ImportOutlined />}
-                                                                loading={importingIndex === index}
-                                                                onClick={() => handleGoToMatch(item, index)}
-                                                                style={{ marginTop: 8 }}
-                                                            >
-                                                                仍然导入到职位库
-                                                            </Button>
-                                                        </div>
-                                                    )}
-                                                </Col>
-                                            </Row>
-                                        </Card>
-                                    </Col>
-                                ))}
-                            </Row>
-                        </div>
-                    ) : (
-                        hasSearched && !loading && (
-                            <Empty description="未在指定城市找到相关职位，请尝试更宽泛的关键词" />
-                        )
-                    )}
-                </Spin>
-
-                {/* 引导区域 */}
-                {!hasSearched && !loading && (
-                    <div className="onboarding">
-                        <Row gutter={32}>
-                            <Col span={8}>
-                                <Card className="feature-intro">
-                                    <Statistic
-                                        title="实时数据"
-                                        value="BOSS直聘"
-                                        prefix={<GlobalOutlined />}
-                                    />
-                                    <Paragraph>
-                                        对接百度百聘聚合平台，实时抓取 BOSS 直聘、智联招聘等主流招聘平台的真实职位。
+                                    <Paragraph ellipsis={{ rows: 3 }} className="job-desc-snippet">
+                                        {item.job.description}
                                     </Paragraph>
+
+                                    <Button type="text" block onClick={() => setDetailModal({ visible: true, job: item })}>
+                                        查看完整内容与分析描述 <ArrowRightOutlined />
+                                    </Button>
                                 </Card>
                             </Col>
-                            <Col span={8}>
-                                <Card className="feature-intro">
-                                    <Statistic
-                                        title="一键导入"
-                                        value="秒级"
-                                        prefix={<ImportOutlined />}
-                                    />
-                                    <Paragraph>
-                                        点击"导入并深度分析"，职位自动存入本地库，并携带简历跳转到 AI 匹配分析页面。
-                                    </Paragraph>
-                                </Card>
-                            </Col>
-                            <Col span={8}>
-                                <Card className="feature-intro">
-                                    <Statistic
-                                        title="跨城寻访"
-                                        value="全地域"
-                                        prefix={<EnvironmentOutlined />}
-                                    />
-                                    <Paragraph>
-                                        支持同时搜索多个城市，系统会并行检索并自动去重，大幅提升寻访效率。
-                                    </Paragraph>
-                                </Card>
-                            </Col>
-                        </Row>
+                        ))}
+                    </Row>
+                ) : hasSearched ? (
+                    <Empty description="未寻访到相关职位，建议尝试更换地域或调整关键词" className="empty-state" />
+                ) : (
+                    <div className="initial-state">
+                        <FileSearchOutlined style={{ fontSize: 64, color: '#f0f0f0', marginBottom: 24 }} />
+                        <Title level={4} style={{ color: '#bfbfbf' }}>在这里开启全网精准寻访</Title>
+                        <Paragraph type="secondary">
+                            基于 AI 的深度意图识别技术，为您从全行业精准筛选职位
+                        </Paragraph>
                     </div>
                 )}
             </div>
 
-            {/* 职位详情弹窗 */}
             <Modal
-                title="职位详情"
+                title="职位深度分析视图"
                 open={detailModal.visible}
                 onCancel={() => setDetailModal({ visible: false, job: null })}
-                footer={
-                    detailModal.job && [
-                        <Button
-                            key="source"
-                            icon={<ExportOutlined />}
-                            onClick={() => handleViewSource(detailModal.job!.job.source_url)}
-                        >
-                            查看原网页
-                        </Button>,
-                        <Button
-                            key="import"
-                            type="primary"
-                            icon={<ImportOutlined />}
-                            onClick={() => {
-                                handleGoToMatch(detailModal.job!, -1);
-                                setDetailModal({ visible: false, job: null });
-                            }}
-                        >
-                            导入并深度分析
-                        </Button>
-                    ]
-                }
-                width={600}
+                footer={[
+                    <Button key="close" onClick={() => setDetailModal({ visible: false, job: null })}>返回列表</Button>,
+                    <Button key="source" icon={<ExportOutlined />} onClick={() => handleViewSource(detailModal.job?.job.source_url || '')}>查看源页面</Button>,
+                    <Button key="match" type="primary" icon={<RocketOutlined />} onClick={() => detailModal.job && handleGoToMatch(detailModal.job, -1)}>同步并开启匹配</Button>
+                ]}
+                width={800}
+                className="job-detail-modal"
             >
                 {detailModal.job && (
-                    <Descriptions column={1} bordered size="small">
-                        <Descriptions.Item label="职位名称">
-                            <Text strong>{detailModal.job.job.title}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="公司">
-                            {detailModal.job.job.company}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="地点">
-                            {detailModal.job.job.location}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="薪资">
-                            <Text type="success">{detailModal.job.job.salary_range}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="经验">
-                            {detailModal.job.job.experience_required || '不限'}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="学历">
-                            {detailModal.job.job.education || '不限'}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="来源平台">
-                            <Badge status="processing" text={detailModal.job.job.source_platform} />
-                        </Descriptions.Item>
-                        {detailModal.job.best_match && (
-                            <Descriptions.Item label="最佳匹配人才">
-                                <Space>
-                                    <Text>{detailModal.job.best_match.name}</Text>
-                                    <Tag color="green">{detailModal.job.best_match.score.toFixed(1)}% 契合度</Tag>
-                                </Space>
-                            </Descriptions.Item>
-                        )}
-                    </Descriptions>
+                    <div className="modal-content">
+                        <Descriptions bordered column={1} size="middle">
+                            <Descriptions.Item label="职位名称"><Text strong>{detailModal.job.job.title}</Text></Descriptions.Item>
+                            <Descriptions.Item label="公司">{detailModal.job.job.company}</Descriptions.Item>
+                            <Descriptions.Item label="薪资">{detailModal.job.job.salary_range}</Descriptions.Item>
+                            <Descriptions.Item label="城市">{detailModal.job.job.location}</Descriptions.Item>
+                            <Descriptions.Item label="来源平台"><Tag color="blue">{detailModal.job.job.source_platform}</Tag></Descriptions.Item>
+                        </Descriptions>
+                        <Divider orientation="left">职位详情 (JD)</Divider>
+                        <div className="description-text">
+                            <Paragraph style={{ whiteSpace: 'pre-line' }}>{detailModal.job.job.description}</Paragraph>
+                        </div>
+                    </div>
                 )}
             </Modal>
         </div>

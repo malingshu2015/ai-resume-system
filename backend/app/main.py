@@ -10,7 +10,8 @@ import logging
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    redirect_slashes=True  # 恢复自动重定向，防止 404
 )
 
 # 自动创建数据库表 (如果不存在)
@@ -26,8 +27,18 @@ for d in [settings.UPLOAD_DIR, "exports"]:
     if not os.path.exists(d):
         os.makedirs(d)
 
-# 跨域配置逻辑 - 动态识别或星号兼容
-origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
+# 跨域配置逻辑 - 更加智能的解析（支持逗号分割或 JSON 列表格式）
+raw_origins = settings.ALLOWED_ORIGINS
+# 如果看起来像 JSON 列表，去掉括号和引号
+if raw_origins.startswith("[") and raw_origins.endswith("]"):
+    raw_origins = raw_origins[1:-1].replace('"', '').replace("'", "")
+
+origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
+if "http://localhost:5173" not in origins:
+    origins.append("http://localhost:5173")
+if "http://127.0.0.1:5173" not in origins:
+    origins.append("http://127.0.0.1:5173")
 allow_all = "*" in origins
 
 app.add_middleware(
@@ -58,7 +69,10 @@ app.mount("/exports", StaticFiles(directory="exports"), name="exports")
 
 # 注册健康检查（最简单路径）
 @app.get("/health")
-async def health(): return {"status": "ok"}
+async def health(): 
+    from app.db.session import SQLALCHEMY_DATABASE_URL
+    db_type = "sqlite" if "sqlite" in SQLALCHEMY_DATABASE_URL else "postgresql"
+    return {"status": "ok", "db_type": db_type}
 
 @app.get("/")
 async def root(): return {"message": "API is Live"}
