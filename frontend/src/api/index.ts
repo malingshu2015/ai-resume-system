@@ -14,6 +14,16 @@ if (typeof window !== 'undefined' && !rawBase.includes('localhost')) {
   API_BASE_URL = 'https://ai-resume-system-cees.onrender.com';
 }
 
+// 调试日志
+if (typeof window !== 'undefined') {
+  console.log('[API Config Debug]', {
+    rawBase,
+    API_BASE_URL,
+    env: import.meta.env.VITE_API_BASE_URL,
+    isDev: rawBase.includes('localhost')
+  });
+}
+
 // 确保 BASE 路径的使用是统一的
 export const API_ENDPOINTS = {
     JOBS: `${API_BASE_URL}/api/v1/jobs`,
