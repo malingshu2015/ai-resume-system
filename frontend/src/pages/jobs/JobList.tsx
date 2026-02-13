@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { API_ENDPOINTS } from '../../api'
 import './JobList.css'
 
 const { Title, Text, Paragraph } = Typography
@@ -41,12 +42,11 @@ const JobList: React.FC = () => {
     const [activeTab, setActiveTab] = useState('1')
 
     const navigate = useNavigate()
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
     const fetchJobs = async () => {
         setLoading(true)
         try {
-            const response = await axios.get(`${baseUrl}/jobs/`)
+            const response = await axios.get(API_ENDPOINTS.JOBS)
             const data = Array.isArray(response.data) ? response.data : response.data?.data || []
             setJobs(data)
         } catch {
@@ -62,7 +62,7 @@ const JobList: React.FC = () => {
 
     const handleViewDetail = async (id: string) => {
         try {
-            const response = await axios.get(`${baseUrl}/jobs/${id}`)
+            const response = await axios.get(`${API_ENDPOINTS.JOBS}/${id}`)
             setCurrentJob(response.data)
             setIsDetailOpen(true)
         } catch {
@@ -80,7 +80,7 @@ const JobList: React.FC = () => {
             centered: true,
             onOk: async () => {
                 try {
-                    await axios.delete(`${baseUrl}/jobs/${id}`)
+                    await axios.delete(`${API_ENDPOINTS.JOBS}/${id}`)
                     message.success('职位已移出库')
                     fetchJobs()
                 } catch {
@@ -239,7 +239,7 @@ const JobList: React.FC = () => {
                         <div style={{ padding: '20px 0' }}>
                             <Form form={createForm} layout="vertical" onFinish={async (values) => {
                                 try {
-                                    await axios.post(`${baseUrl}/jobs/`, values)
+                                    await axios.post(API_ENDPOINTS.JOBS, values)
                                     message.success('录入成功')
                                     setIsCreateModalOpen(false)
                                     createForm.resetFields()
@@ -280,12 +280,11 @@ const JobList: React.FC = () => {
                                             return false;
                                         }
 
-                                        setAnalyzingDoc(true);
                                         const formData = new FormData();
                                         formData.append('file', file);
 
                                         try {
-                                            const res = await axios.post(`${baseUrl}/jobs/analyze-document`, formData, {
+                                            const res = await axios.post(`${API_ENDPOINTS.JOBS}/analyze-document`, formData, {
                                                 headers: { 'Content-Type': 'multipart/form-data' }
                                             });
                                             const { title, company, description } = res.data;

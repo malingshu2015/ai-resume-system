@@ -13,6 +13,14 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# 自动创建数据库表 (如果不存在)
+try:
+    from app.models import resume, job, match, ai_config, job_search
+    Base.metadata.create_all(bind=engine)
+    logging.info("Database tables verified/created successfully.")
+except Exception as e:
+    logging.error(f"Table creation skip: {e}")
+
 # 确保文件夹存在
 for d in [settings.UPLOAD_DIR, "exports"]:
     if not os.path.exists(d):
