@@ -29,7 +29,11 @@ interface Resume {
     optimization_notes?: string
 }
 
-const ResumeList: React.FC = () => {
+interface ResumeListProps {
+    showHeader?: boolean
+}
+
+const ResumeList: React.FC<ResumeListProps> = ({ showHeader = true }) => {
     const navigate = useNavigate()
     const [resumes, setResumes] = useState<Resume[]>([])
     const [loading, setLoading] = useState(false)
@@ -200,21 +204,23 @@ const ResumeList: React.FC = () => {
 
     return (
         <div className="resume-list-container">
-            <div className="page-header">
-                <div className="header-left">
-                    <Title level={1}>我的简历库</Title>
-                    <Text type="secondary" style={{ fontSize: 17 }}>
-                        系统会自动对每一份简历进行深度解析，将其转化为可供 AI 匹配的数据结构。
-                    </Text>
+            {showHeader && (
+                <div className="page-header">
+                    <div className="header-left">
+                        <Title level={1}>我的简历库</Title>
+                        <Text type="secondary" style={{ fontSize: 17 }}>
+                            系统会自动对每一份简历进行深度解析，将其转化为可供 AI 匹配的数据结构。
+                        </Text>
+                    </div>
+                    <div className="header-right">
+                        <Upload {...uploadProps}>
+                            <Button type="primary" size="large" icon={<UploadOutlined />} style={{ height: 48, borderRadius: 24, padding: '0 24px' }}>
+                                导入简历
+                            </Button>
+                        </Upload>
+                    </div>
                 </div>
-                <div className="header-right">
-                    <Upload {...uploadProps}>
-                        <Button type="primary" size="large" icon={<UploadOutlined />} style={{ height: 48, borderRadius: 24, padding: '0 24px' }}>
-                            导入简历
-                        </Button>
-                    </Upload>
-                </div>
-            </div>
+            )}
 
             <Row gutter={[32, 32]}>
                 <Col xs={24} lg={16}>

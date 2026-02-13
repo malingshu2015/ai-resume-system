@@ -16,20 +16,8 @@ import {
     Descriptions,
     Badge
 } from 'antd';
-import {
-    SearchOutlined,
-    EnvironmentOutlined,
-    TeamOutlined,
-    ArrowRightOutlined,
-    RocketOutlined,
-    GlobalOutlined,
-    ExportOutlined,
-    ImportOutlined,
-    FileSearchOutlined,
-    DollarOutlined,
-    BookOutlined,
-    CalendarOutlined
-} from '@ant-design/icons';
+import { CalendarOutlined, SearchOutlined, EnvironmentOutlined, DollarOutlined, ExperimentOutlined, ReadOutlined, GlobalOutlined, RocketOutlined, ArrowRightOutlined, TeamOutlined, ExportOutlined, ImportOutlined, FileSearchOutlined, BookOutlined } from '@ant-design/icons';
+import API_BASE_URL from '../../api';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './SmartSourcing.css';
@@ -86,7 +74,7 @@ const SmartSourcing: React.FC = () => {
         setResults([]);
         setHasSearched(false);
         try {
-            const response = await axios.post(`${baseUrl}/job-search/smart-sourcing`, {
+            const response = await axios.post(`${API_BASE_URL}/job-search/smart-sourcing`, {
                 keyword: keyword.trim(),
                 locations,
                 max_results_per_loc: 10

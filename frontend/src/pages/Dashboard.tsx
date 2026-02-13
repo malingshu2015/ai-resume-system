@@ -5,8 +5,6 @@ import {
     FileTextOutlined,
     ProjectOutlined,
     BarChartOutlined,
-    RocketOutlined,
-    UploadOutlined,
     PlusOutlined,
     ThunderboltOutlined,
     RiseOutlined,
@@ -14,6 +12,7 @@ import {
     ArrowRightOutlined
 } from '@ant-design/icons'
 import axios from 'axios'
+import API_BASE_URL from '../api'
 import './Dashboard.css'
 
 const { Title, Text, Paragraph } = Typography
@@ -24,7 +23,7 @@ const Dashboard: React.FC = () => {
     const [activities, setActivities] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+    const baseUrl = `${API_BASE_URL}`
 
     const fetchDashboardData = async () => {
         try {
