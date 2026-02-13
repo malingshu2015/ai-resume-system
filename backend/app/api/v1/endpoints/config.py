@@ -42,6 +42,8 @@ async def get_configs(db: Session = Depends(get_db)):
 @router.post("/")
 async def create_config(config: AIConfigCreate, db: Session = Depends(get_db)):
     """创建新配置"""
+    import logging
+    logging.info(f"Creating new AI config: {config.provider} - {config.model_name}")
     # 如果设置为激活，先取消其他激活状态
     if config.is_active:
         db.query(AIConfig).update({AIConfig.is_active: False})
