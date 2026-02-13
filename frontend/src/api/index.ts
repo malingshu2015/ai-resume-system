@@ -35,17 +35,3 @@ if (typeof window !== 'undefined') {
 }
 
 export default API_BASE_URL;
-
-// 确保 BASE 路径的使用是统一的
-export const API_ENDPOINTS = {
-    JOBS: `${API_BASE_URL}/api/v1/jobs`,
-    RESUMES: `${API_BASE_URL}/api/v1/resumes`,
-    MATCH: `${API_BASE_URL}/api/v1/match`,
-    DASHBOARD: `${API_BASE_URL}/api/v1/dashboard`,
-    RESUME_GENERATOR: `${API_BASE_URL}/api/v1/resume-generator`,
-    JOB_SEARCH: `${API_BASE_URL}/api/v1/job-search`,
-    CONFIG: `${API_BASE_URL}/api/v1/config`,
-    AI: `${API_BASE_URL}/api/v1/ai`,
-};
-
-export default API_BASE_URL;
