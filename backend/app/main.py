@@ -84,14 +84,23 @@ async def redirect_jobs():
     """兼容性端点，将来自前端的错误请求转发到正确的 API"""
     from sqlalchemy.orm import Session
     from app.db.session import SessionLocal
-    from app.api.v1.endpoints.job import list_jobs
+    from app.models.job import Job
 
     db = SessionLocal()
     try:
-        return await list_jobs(db=db)
+        jobs = db.query(Job).order_by(Job.created_at.desc()).all()
+        return [
+            {
+                "id": j.id,
+                "title": j.title,
+                "company": j.company,
+                "status": j.status,
+                "created_at": j.created_at.isoformat() if hasattr(j.created_at, 'isoformat') else str(j.created_at)
+            } for j in jobs
+        ]
     except Exception as e:
         logging.error(f"Compatibility route error: {e}")
-        raise
+        return []
     finally:
         db.close()
 
