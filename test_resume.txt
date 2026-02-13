@@ -1,0 +1,4 @@
+Dummy resume content
+Project 1: Fix bug
+Action: search, replace
+Result: 100% fixed
