@@ -4,16 +4,23 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 import logging
 
-# 如果是本地开发且没有启动 Docker Postgres，这里可以根据环境变量灵活切换
+# 解析数据库 URL
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
-if not SQLALCHEMY_DATABASE_URL or "@postgres" in SQLALCHEMY_DATABASE_URL:
-    # 回退到本地 SQLite 以支持演示
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
-    logging.warning("Using SQLite database for local development.")
 
+if SQLALCHEMY_DATABASE_URL:
+    # Render 等平台提供的协议头兼容性处理
+    if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+else:
+    # 回退到本地 SQLite
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+    logging.warning("No DATABASE_URL found, falling back to SQLite.")
+
+# 创建引擎
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, 
-    connect_args={"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {}
+    connect_args={"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {},
+    pool_pre_ping=True # 自动检测失效连接
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

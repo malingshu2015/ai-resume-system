@@ -39,7 +39,8 @@ import os
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    redirect_slashes=False  # 禁止自动重定向斜杠，防止跨域丢失
 )
 
 # 确保 uploads 和 exports 目录存在
