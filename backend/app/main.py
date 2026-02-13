@@ -1,88 +1,66 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.session import engine, Base
-from app.models import resume, job, match, ai_config, job_search  # 导入模型进行表创建
-
-# 创建数据库表
-# Base.metadata.create_all(bind=engine) # create_all 不会自动处理新增列
-
-# 尝试自动迁移数据库（不影响主程序启动）
-try:
-    from sqlalchemy import text, inspect
-    inspector = inspect(engine)
-    if 'resumes' in inspector.get_table_names():
-        columns = [c['name'] for c in inspector.get_columns('resumes')]
-        with engine.begin() as conn:
-            # 只有在完全确定缺失时才执行 ALTER
-            if 'avatar_url' not in columns:
-                conn.execute(text("ALTER TABLE resumes ADD COLUMN avatar_url VARCHAR;"))
-            
-            # 简化的优化字段检查
-            if 'is_optimized' not in columns:
-                conn.execute(text("ALTER TABLE resumes ADD COLUMN is_optimized VARCHAR;"))
-                conn.execute(text("ALTER TABLE resumes ADD COLUMN parent_resume_id VARCHAR;"))
-                conn.execute(text("ALTER TABLE resumes ADD COLUMN target_job_id VARCHAR;"))
-    
-    if 'match_results' in inspector.get_table_names():
-        match_cols = [c['name'] for c in inspector.get_columns('match_results')]
-        if 'learning_path' not in match_cols:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE match_results ADD COLUMN learning_path JSON;"))
-except Exception as e:
-    # 哪怕迁移失败，也要让 API 先跑起来，通过健康检查是第一优先级
-    print(f"Non-fatal migration skip: {e}")
-
-from fastapi.staticfiles import StaticFiles
 import os
+import logging
 
+# 初始化 FastAPI
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# 确保 uploads 和 exports 目录存在
+# 确保文件夹存在
 for d in [settings.UPLOAD_DIR, "exports"]:
     if not os.path.exists(d):
         os.makedirs(d)
 
-# 强制将 "*" 逻辑在代码层级处理，因为 allow_credentials=True 不支持 "*"
+# 跨域配置逻辑 - 动态识别或星号兼容
 origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
+allow_all = "*" in origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins != ["*"] else ["*"],
-    allow_credentials=False if "*" in origins else True,
+    allow_origins=["*"] if allow_all else origins,
+    allow_credentials=not allow_all, # * 时必须为 False
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
-# 挂载静态文件目录
+# 终极防御：全局异常处理器，确保 500 报错时也能返回跨域头
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logging.error(f"Global error: {exc}", exc_info=True)
+    response = JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc)},
+    )
+    # 手动添加跨域头，防止浏览器拦截 500 详情
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
+
+# 挂载静态文件
+from fastapi.staticfiles import StaticFiles
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 app.mount("/exports", StaticFiles(directory="exports"), name="exports")
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to AI Resume Optimizer API"}
-
+# 注册健康检查（最简单路径）
 @app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+async def health(): return {"status": "ok"}
+
+@app.get("/")
+async def root(): return {"message": "API is Live"}
 
 # 注册路由
-from app.api.v1.endpoints import resume as resume_router
-from app.api.v1.endpoints import job as job_router
-from app.api.v1.endpoints import match as match_router
-from app.api.v1.endpoints import dashboard as dashboard_router
-from app.api.v1.endpoints import config as config_router
-from app.api.v1.endpoints import job_search as job_search_router
-from app.api.v1.endpoints import resume_generator as resume_generator_router
-
-app.include_router(resume_router.router, prefix=f"{settings.API_V1_STR}/resumes", tags=["resumes"])
-app.include_router(job_router.router, prefix=f"{settings.API_V1_STR}/jobs", tags=["jobs"])
-app.include_router(match_router.router, prefix=f"{settings.API_V1_STR}/match", tags=["match"])
-app.include_router(dashboard_router.router, prefix=f"{settings.API_V1_STR}/dashboard", tags=["dashboard"])
-app.include_router(config_router.router, prefix=f"{settings.API_V1_STR}/config", tags=["config"])
-app.include_router(job_search_router.router, prefix=f"{settings.API_V1_STR}/job-search", tags=["job-search"])
-app.include_router(resume_generator_router.router, prefix=f"{settings.API_V1_STR}/resume-generator", tags=["resume-generator"])
+from app.api.v1.endpoints import resume, job, match, dashboard, config, job_search, resume_generator
+app.include_router(resume.router, prefix=f"{settings.API_V1_STR}/resumes", tags=["resumes"])
+app.include_router(job.router, prefix=f"{settings.API_V1_STR}/jobs", tags=["jobs"])
+app.include_router(match.router, prefix=f"{settings.API_V1_STR}/match", tags=["match"])
+app.include_router(dashboard.router, prefix=f"{settings.API_V1_STR}/dashboard", tags=["dashboard"])
+app.include_router(config.router, prefix=f"{settings.API_V1_STR}/config", tags=["config"])
+app.include_router(job_search.router, prefix=f"{settings.API_V1_STR}/job-search", tags=["job-search"])
+app.include_router(resume_generator.router, prefix=f"{settings.API_V1_STR}/resume-generator", tags=["resume-generator"])
