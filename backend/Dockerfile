@@ -15,8 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制应用代码
 COPY . .
 
-# 暴露端口
-EXPOSE 8000
+# 暴露端口 (Render 会自动覆盖这个值，但保留声明是好习惯)
+EXPOSE 10000
 
-# 运行应用
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 运行应用，端口通过环境变量读取，默认为 10000
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
