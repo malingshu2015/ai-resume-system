@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
     DASHBOARD: `${API_BASE_URL}/api/v1/dashboard`,
     RESUME_GENERATOR: `${API_BASE_URL}/api/v1/resume-generator`,
     JOB_SEARCH: `${API_BASE_URL}/api/v1/job-search`,
+    CONFIG: `${API_BASE_URL}/api/v1/config`,
     AI: `${API_BASE_URL}/api/v1/ai`,
 };
 
