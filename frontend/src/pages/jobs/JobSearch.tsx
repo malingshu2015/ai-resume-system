@@ -9,6 +9,7 @@ import {
     EnvironmentOutlined, DollarOutlined, LinkOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
+import { API_ENDPOINTS } from '../../api';
 import './JobSearch.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -49,8 +50,6 @@ const JobSearch: React.FC = () => {
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedJob, setSelectedJob] = useState<CrawledJob | null>(null);
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-
     useEffect(() => {
         fetchTasks();
         fetchJobs();
@@ -58,7 +57,7 @@ const JobSearch: React.FC = () => {
 
     const fetchTasks = async () => {
         try {
-            const response = await axios.get(`${baseUrl}/job-search/tasks`);
+            const response = await axios.get(`${API_ENDPOINTS.JOB_SEARCH}/tasks`);
             setTasks(response.data);
         } catch (error) {
             console.error('获取任务列表失败', error);
@@ -69,7 +68,7 @@ const JobSearch: React.FC = () => {
         setLoading(true);
         try {
             const params = taskId ? { task_id: taskId } : {};
-            const response = await axios.get(`${baseUrl}/job-search/crawled-jobs`, { params });
+            const response = await axios.get(`${API_ENDPOINTS.JOB_SEARCH}/crawled-jobs`, { params });
             setJobs(response.data);
         } catch (error) {
             message.error('获取职位列表失败');
@@ -81,7 +80,7 @@ const JobSearch: React.FC = () => {
     const handleSearch = async (values: any) => {
         setSearching(true);
         try {
-            const response = await axios.post(`${baseUrl}/job-search/search`, {
+            const response = await axios.post(`${API_ENDPOINTS.JOB_SEARCH}/search`, {
                 keyword: values.keyword,
                 location: values.location,
                 max_results: 20
@@ -104,7 +103,7 @@ const JobSearch: React.FC = () => {
 
     const handleImportJob = async (jobId: string) => {
         try {
-            await axios.post(`${baseUrl}/job-search/crawled-jobs/${jobId}/import`);
+            await axios.post(`${API_ENDPOINTS.JOB_SEARCH}/crawled-jobs/${jobId}/import`);
             message.success('职位已导入到正式库');
             fetchJobs(selectedTask || undefined);
         } catch (error: any) {
@@ -121,7 +120,7 @@ const JobSearch: React.FC = () => {
             cancelText: '取消',
             onOk: async () => {
                 try {
-                    await axios.delete(`${baseUrl}/job-search/crawled-jobs/${jobId}`);
+                    await axios.delete(`${API_ENDPOINTS.JOB_SEARCH}/crawled-jobs/${jobId}`);
                     message.success('删除成功');
                     fetchJobs(selectedTask || undefined);
                 } catch (error) {

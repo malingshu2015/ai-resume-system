@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     MATCH: `${API_BASE_URL}/api/v1/match`,
     DASHBOARD: `${API_BASE_URL}/api/v1/dashboard`,
     RESUME_GENERATOR: `${API_BASE_URL}/api/v1/resume-generator`,
+    JOB_SEARCH: `${API_BASE_URL}/api/v1/job-search`,
     AI: `${API_BASE_URL}/api/v1/ai`,
 };
 
