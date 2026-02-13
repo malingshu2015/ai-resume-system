@@ -77,17 +77,23 @@ async def health():
 @app.get("/")
 async def root(): return {"message": "API is Live"}
 
-# 兼容性路由：如果前端请求了错误的路径，重定向到正确的路径
+# 兼容性路由：如果前端请求了错误的路径，转发到正确的 API
 @app.get("/jobs")
 @app.get("/jobs/")
 async def redirect_jobs():
-    """兼容性端点，将错误的请求转发到正确的 API"""
+    """兼容性端点，将来自前端的错误请求转发到正确的 API"""
+    from sqlalchemy.orm import Session
+    from app.db.session import SessionLocal
     from app.api.v1.endpoints.job import list_jobs
-    from fastapi import HTTPException
+
+    db = SessionLocal()
     try:
-        return await list_jobs(skip=0, limit=100)
+        return await list_jobs(db=db)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Compatibility route error: {e}")
+        raise
+    finally:
+        db.close()
 
 # 注册路由
 from app.api.v1.endpoints import resume, job, match, dashboard, config, job_search, resume_generator
