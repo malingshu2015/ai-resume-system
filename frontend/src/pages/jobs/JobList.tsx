@@ -46,10 +46,7 @@ const JobList: React.FC = () => {
     const fetchJobs = async () => {
         setLoading(true)
         try {
-            // 调试：强制使用正确的 API 端点
-            const apiUrl = 'https://ai-resume-system-cees.onrender.com/api/v1/jobs'
-            console.log('[JobList] Fetching from:', apiUrl)
-            const response = await axios.get(apiUrl)
+            const response = await axios.get(API_ENDPOINTS.JOBS)
             const data = Array.isArray(response.data) ? response.data : response.data?.data || []
             setJobs(data)
         } catch (error: any) {
