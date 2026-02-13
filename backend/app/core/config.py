@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
     OPENAI_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
     OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4")
+
+    # DeepSeek 专用配置 (如果存在则优先)
+    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY")
+    if DEEPSEEK_API_KEY and not OPENAI_API_KEY:
+        OPENAI_API_KEY = DEEPSEEK_API_KEY
+        OPENAI_API_BASE = "https://api.deepseek.com"
+        OPENAI_MODEL = "deepseek-chat"
     
     # CORS 配置
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
