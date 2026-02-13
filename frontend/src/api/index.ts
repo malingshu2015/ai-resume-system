@@ -24,8 +24,15 @@ export const API_ENDPOINTS = {
     AI: `${API_BASE_URL}/api/v1/ai`,
 };
 
-// 调试日志
+// 调试日志 - 在生产环境中必须可见
 if (typeof window !== 'undefined') {
+  // 强制在页面标题中显示
+  const debugInfo = `[API: ${API_BASE_URL}]`;
+  if (!document.title.includes('[API:')) {
+    document.title = debugInfo + ' ' + document.title;
+  }
+
+  // 同时也记录到控制台
   console.log('[API Config]', {
     hostname: window.location.hostname,
     isProduction,
