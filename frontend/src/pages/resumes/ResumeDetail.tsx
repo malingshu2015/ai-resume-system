@@ -16,6 +16,7 @@ import {
     EyeOutlined, FormOutlined, ReloadOutlined, PlusOutlined, UserOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
+import { API_ENDPOINTS } from '../../api';
 import './ResumeDetail.css';
 import ResumeExportModal from '../../components/ResumeExportModal';
 
@@ -58,8 +59,6 @@ const ResumeDetail: React.FC = () => {
     // 导出 Modal
     const [exportModalVisible, setExportModalVisible] = useState(false);
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-
     useEffect(() => {
         if (resumeId) {
             fetchResume();
@@ -70,7 +69,7 @@ const ResumeDetail: React.FC = () => {
     const fetchResume = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${baseUrl}/resumes/${resumeId}`);
+            const response = await axios.get(`${API_ENDPOINTS.RESUMES}/${resumeId}`);
             setResume(response.data);
             setEditedData(response.data.parsed_data);
         } catch (error) {
@@ -83,7 +82,7 @@ const ResumeDetail: React.FC = () => {
 
     const fetchTemplates = async () => {
         try {
-            const response = await axios.get(`${baseUrl}/resume-generator/templates`);
+            const response = await axios.get(`${API_ENDPOINTS.RESUME_GENERATOR}/templates`);
             setTemplates(response.data.templates || []);
         } catch (error) {
             console.error('获取模板失败');
@@ -96,7 +95,7 @@ const ResumeDetail: React.FC = () => {
 
         setSaving(true);
         try {
-            await axios.put(`${baseUrl}/resumes/${resumeId}`, {
+            await axios.put(`${API_ENDPOINTS.RESUMES}/${resumeId}`, {
                 parsed_data: editedData,
                 avatar_url: editedData.avatar_url // 显式传递给后端
             });
@@ -232,11 +231,11 @@ const ResumeDetail: React.FC = () => {
                                 listType="picture-card"
                                 className="avatar-uploader"
                                 showUploadList={false}
-                                action={`${baseUrl}/resumes/${resumeId}/avatar`}
+                                action={`${API_ENDPOINTS.RESUMES}/${resumeId}/avatar`}
                                 onChange={handleAvatarUpload}
                             >
                                 {avatarUrl ? (
-                                    <img src={avatarUrl.startsWith('http') ? avatarUrl : `${baseUrl.replace('/api/v1', '')}${avatarUrl}`} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={avatarUrl.startsWith('http') ? avatarUrl : `${API_ENDPOINTS.RESUMES.replace('/api/v1/resumes', '')}${avatarUrl}`} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
                                     <div>
                                         <PlusOutlined />
@@ -724,7 +723,7 @@ const ResumeDetail: React.FC = () => {
                         <div className="header-right">
                             {avatarUrl ? (
                                 <img
-                                    src={avatarUrl.startsWith('http') ? avatarUrl : `${baseUrl.replace('/api/v1', '')}${avatarUrl}`}
+                                    src={avatarUrl.startsWith('http') ? avatarUrl : `${API_ENDPOINTS.RESUMES.replace('/api/v1/resumes', '')}${avatarUrl}`}
                                     alt="avatar"
                                     className="profile-avatar"
                                 />

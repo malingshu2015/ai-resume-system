@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
 import axios from 'axios'
+import { API_ENDPOINTS } from '../../api'
 import './ResumeList.css'
 
 const { Title, Text, Paragraph } = Typography
@@ -42,12 +43,10 @@ const ResumeList: React.FC<ResumeListProps> = ({ showHeader = true }) => {
     const [detailLoading, setDetailLoading] = useState(false)
     const [activeTab, setActiveTab] = useState('original')
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
-
     const fetchResumes = async () => {
         setLoading(true)
         try {
-            const response = await axios.get(`${baseUrl}/resumes/`)
+            const response = await axios.get(API_ENDPOINTS.RESUMES)
             // 兼容性处理
             const data = Array.isArray(response.data) ? response.data : response.data?.data || []
             setResumes(data)
@@ -75,7 +74,7 @@ const ResumeList: React.FC<ResumeListProps> = ({ showHeader = true }) => {
             centered: true,
             onOk: async () => {
                 try {
-                    await axios.delete(`${baseUrl}/resumes/${id}`)
+                    await axios.delete(`${API_ENDPOINTS.RESUMES}/${id}`)
                     message.success('简历已成功移出库')
                     fetchResumes()
                 } catch (error) {
@@ -87,7 +86,7 @@ const ResumeList: React.FC<ResumeListProps> = ({ showHeader = true }) => {
 
     const uploadProps: UploadProps = {
         name: 'file',
-        action: `${baseUrl}/resumes/upload`,
+        action: `${API_ENDPOINTS.RESUMES}/upload`,
         multiple: true,
         showUploadList: false,
         onChange(info) {

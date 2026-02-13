@@ -12,7 +12,7 @@ import {
     ArrowRightOutlined
 } from '@ant-design/icons'
 import axios from 'axios'
-import API_BASE_URL from '../api'
+import { API_ENDPOINTS } from '../api'
 import './Dashboard.css'
 
 const { Title, Text, Paragraph } = Typography
@@ -23,13 +23,11 @@ const Dashboard: React.FC = () => {
     const [activities, setActivities] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
-    const baseUrl = `${API_BASE_URL}`
-
     const fetchDashboardData = async () => {
         try {
             const [statsRes, activitiesRes] = await Promise.all([
-                axios.get(`${baseUrl}/dashboard/stats`),
-                axios.get(`${baseUrl}/dashboard/recent`)
+                axios.get(`${API_ENDPOINTS.DASHBOARD}/stats`),
+                axios.get(`${API_ENDPOINTS.DASHBOARD}/recent`)
             ])
             setStats(statsRes.data)
             setActivities(activitiesRes.data)
