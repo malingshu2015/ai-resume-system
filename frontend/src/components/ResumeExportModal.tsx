@@ -24,7 +24,7 @@ const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
     const [selectedTemplate, setSelectedTemplate] = useState('modern')
     const [previewHtml, setPreviewHtml] = useState<string>('')
     const [loading, setLoading] = useState<boolean>(false)
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+    
 
     // 获取预览 HTML
     const fetchPreviewHtml = async (templateId: string) => {
