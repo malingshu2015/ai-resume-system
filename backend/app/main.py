@@ -39,33 +39,28 @@ import os
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    redirect_slashes=False  # 禁止自动重定向斜杠，防止跨域丢失
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
 # 确保 uploads 和 exports 目录存在
-if not os.path.exists(settings.UPLOAD_DIR):
-    os.makedirs(settings.UPLOAD_DIR)
+for d in [settings.UPLOAD_DIR, "exports"]:
+    if not os.path.exists(d):
+        os.makedirs(d)
 
-if not os.path.exists("exports"):
-    os.makedirs("exports")
+# 强制将 "*" 逻辑在代码层级处理，因为 allow_credentials=True 不支持 "*"
+origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins if origins != ["*"] else ["*"],
+    allow_credentials=False if "*" in origins else True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 挂载静态文件目录
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 app.mount("/exports", StaticFiles(directory="exports"), name="exports")
-
-# CORS 配置
-origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
-if "*" in origins:
-    origins = ["*"]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.get("/")
 async def root():
