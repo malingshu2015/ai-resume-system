@@ -53,10 +53,14 @@ if not os.path.exists("exports"):
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 app.mount("/exports", StaticFiles(directory="exports"), name="exports")
 
-# CORS 配置 - 万能配置以确保调试通过
+# CORS 配置
+origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
+if "*" in origins:
+    origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
