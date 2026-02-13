@@ -77,6 +77,18 @@ async def health():
 @app.get("/")
 async def root(): return {"message": "API is Live"}
 
+# 兼容性路由：如果前端请求了错误的路径，重定向到正确的路径
+@app.get("/jobs")
+@app.get("/jobs/")
+async def redirect_jobs():
+    """兼容性端点，将错误的请求转发到正确的 API"""
+    from app.api.v1.endpoints.job import list_jobs
+    from fastapi import HTTPException
+    try:
+        return await list_jobs(skip=0, limit=100)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # 注册路由
 from app.api.v1.endpoints import resume, job, match, dashboard, config, job_search, resume_generator
 app.include_router(resume.router, prefix=f"{settings.API_V1_STR}/resumes", tags=["resumes"])
